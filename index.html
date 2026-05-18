@@ -1,0 +1,3587 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="description"
+      content="StitchVM: Stitched Value Model for Diffusion Alignment"
+    />
+    <meta
+      name="keywords"
+      content="diffusion, alignment, reward model, value function, model stitching, generative models"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="StitchVM: Stitched Value Model for Diffusion Alignment"
+    />
+    <meta
+      name="twitter:description"
+      content="Transfer pretrained reward models into value functions on noisy latents — at small finetuning cost."
+    />
+
+    <title>StitchVM: Stitched Value Model for Diffusion Alignment</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧵</text></svg>"
+    />
+
+    <link
+      href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="./static/css/bulma.min.css" />
+    <link rel="stylesheet" href="./static/css/bulma-carousel.min.css" />
+    <link rel="stylesheet" href="./static/css/bulma-slider.min.css" />
+    <link rel="stylesheet" href="./static/css/twentytwenty.css" />
+    <link rel="stylesheet" href="./static/css/index.css" />
+    <link rel="stylesheet" href="./static/css/pages.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css"
+    />
+
+    <script src="./static/js/jquery-3.2.1.min.js"></script>
+    <script src="./static/js/jquery.event.move.js"></script>
+    <script src="./static/js/jquery.twentytwenty.js"></script>
+    <script src="./static/js/bulma-carousel.min.js"></script>
+    <script src="./static/js/bulma-slider.min.js"></script>
+    <script src="./static/js/fontawesome.all.min.js"></script>
+
+    <!-- MathJax -->
+    <script>
+      window.MathJax = {
+        tex: {
+          inlineMath: [
+            ["$", "$"],
+            ["\\(", "\\)"],
+          ],
+        },
+        svg: { fontCache: "global" },
+      };
+    </script>
+    <script
+      type="text/javascript"
+      id="MathJax-script"
+      async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+    ></script>
+
+    <style>
+      .methodname {
+        font-family: "Google Sans", sans-serif;
+        font-weight: 700;
+      }
+      .figure-caption {
+        font-size: 0.95rem;
+        color: #4a4a4a;
+        margin-top: 0.5rem;
+      }
+      .highlight-box {
+        background: #f5f7fb;
+        border-left: 4px solid #485fc7;
+        padding: 1rem 1.25rem;
+        margin: 1.25rem 0;
+        border-radius: 6px;
+      }
+      .stat-row {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 1rem;
+        margin: 1rem 0 0 0;
+      }
+      .stat-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 0.9rem 1.1rem;
+        min-width: 150px;
+        flex: 1 1 160px;
+        max-width: 200px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      }
+      .stat-number {
+        font-family: "Google Sans", sans-serif;
+        font-size: 2rem;
+        font-weight: 700;
+        color: #485fc7;
+        line-height: 1.1;
+      }
+      .stat-label {
+        font-size: 0.95rem;
+        color: #4a4a4a;
+      }
+      .pub-figure {
+        margin: 1.25rem 0;
+      }
+      .figure-placeholder {
+        border: 2px dashed #b5bdc7;
+        background: repeating-linear-gradient(
+          45deg,
+          #fbfcfe,
+          #fbfcfe 12px,
+          #f1f3f8 12px,
+          #f1f3f8 24px
+        );
+        border-radius: 10px;
+        padding: 1.75rem 1.5rem;
+        margin: 1.5rem 0;
+        text-align: left;
+        color: #2a3247;
+      }
+      .figure-placeholder .placeholder-tag {
+        display: inline-block;
+        background: #485fc7;
+        color: white;
+        font-family: "Google Sans", sans-serif;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        padding: 0.2rem 0.6rem;
+        border-radius: 4px;
+        margin-bottom: 0.6rem;
+      }
+      .figure-placeholder .placeholder-title {
+        font-family: "Google Sans", sans-serif;
+        font-weight: 600;
+        font-size: 1.05rem;
+        margin-bottom: 0.5rem;
+      }
+      .figure-placeholder .placeholder-spec {
+        font-size: 0.95rem;
+        line-height: 1.55;
+      }
+      .figure-placeholder .placeholder-spec ul {
+        margin-top: 0.4rem;
+        margin-left: 1.25rem;
+        list-style: disc;
+      }
+      .act-label {
+        display: inline-block;
+        background: #1f2a4d;
+        color: #fff;
+        font-family: "Google Sans", sans-serif;
+        letter-spacing: 0.12em;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.3rem 0.7rem;
+        border-radius: 999px;
+        margin-bottom: 0.75rem;
+      }
+
+      /* Global: prevent any horizontal scroll on narrow viewports */
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body { overflow-x: hidden; max-width: 100%; margin: 0; padding: 0; }
+      img, svg, video, canvas { max-width: 100%; }
+      .container { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+      @media (max-width: 768px) {
+        .hero-body { padding: 1.5rem 0.5rem !important; }
+        .section { padding: 1.25rem 0.5rem !important; }
+      }
+      /* Force button row to wrap cleanly on small screens */
+      .publication-links {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.45rem;
+        margin-top: 0.4rem;
+        padding: 0 0.5rem;
+      }
+      .publication-links .link-block { margin: 0; }
+
+      /* === Hero title — bold sans, colored model-name prefix, VGGRPO-style === */
+      .hero-titlerow {
+        margin: 0.4rem auto 0.5rem auto;
+        max-width: min(980px, 100%);
+        font-family: "Google Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+        font-weight: 700;
+        font-size: clamp(1.15rem, 0.65rem + 2.4vw, 2.6rem);
+        line-height: 1.22;
+        color: #0f172a;
+        text-align: center;
+        letter-spacing: -0.01em;
+        padding: 0 0.5rem;
+        overflow-wrap: anywhere;
+      }
+      .hero-titlerow .title-method {
+        color: #10b981;
+      }
+      .hero-subline {
+        font-family: "Google Sans", sans-serif;
+        font-size: clamp(0.85rem, 0.75rem + 0.4vw, 1.05rem);
+        font-weight: 500;
+        color: #6b7280;
+        margin: 0.25rem 0 1.05rem 0;
+        text-align: center;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .hero-subline .hero-sep {
+        color: #cbd5e1;
+        margin: 0 0.55em;
+      }
+
+      /* === Author block — VGGRPO-style: bold + yellow highlighter === */
+      .publication-authors.responsive {
+        max-width: 920px;
+        margin: 0.6rem auto 0.35rem auto;
+        line-height: 1.85;
+        font-size: clamp(0.92rem, 0.8rem + 0.45vw, 1.1rem) !important;
+        color: #1f2937;
+        padding: 0 0.6rem;
+        text-align: center;
+      }
+      .publication-authors.responsive .author-block {
+        display: inline-block;
+        white-space: nowrap;
+        margin: 0 0.22rem;
+      }
+      @media (max-width: 480px) {
+        .publication-authors.responsive .author-block {
+          white-space: normal;
+        }
+      }
+      .publication-authors.responsive .author-block a {
+        color: #0f172a;
+        font-weight: 700;
+        text-decoration: none;
+        background: linear-gradient(180deg, transparent 0%, transparent 68%, #fde047 68%, #fde047 95%, transparent 95%);
+        padding: 0 0.08em 0.04em 0.08em;
+        transition: background 0.18s ease;
+      }
+      .publication-authors.responsive .author-block a:hover {
+        background: linear-gradient(180deg, transparent 0%, transparent 0%, #fde047 0%, #fde047 100%, transparent 100%);
+      }
+      .publication-authors.responsive sup {
+        color: #6b7280;
+        font-weight: 600;
+        font-size: 0.68em;
+        margin-left: 1px;
+        letter-spacing: 0.02em;
+      }
+
+      /* === Text affiliations row — the "key" for the superscripts === */
+      .text-affil-row {
+        font-family: "Google Sans", sans-serif;
+        font-size: clamp(0.75rem, 0.68rem + 0.22vw, 0.9rem);
+        color: #4b5563;
+        margin: 0.15rem auto 0.85rem auto;
+        text-align: center;
+        line-height: 1.55;
+        max-width: 920px;
+        padding: 0 0.6rem;
+      }
+      .text-affil-row sup {
+        color: #9ca3af;
+        font-weight: 600;
+        font-size: 0.78em;
+        margin-right: 1px;
+      }
+      .text-affil-row .affil-sep {
+        color: #cbd5e1;
+        margin: 0 0.55rem;
+      }
+
+      /* === Institutional logo separator strip === */
+      .hero-logo-strip {
+        margin: 0 auto 1.25rem auto;
+        max-width: 880px;
+        position: relative;
+        padding: 0.35rem 0;
+      }
+      .hero-logo-strip::before,
+      .hero-logo-strip::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent 0%, #e5e7eb 12%, #e5e7eb 88%, transparent 100%);
+      }
+      .hero-logo-strip::before { top: 0; }
+      .hero-logo-strip::after  { bottom: 0; }
+      .hero-logo-strip-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 28px;
+        padding: 0.55rem 0;
+        flex-wrap: wrap;
+      }
+      .hero-logo-strip-row .logo-slot {
+        display: inline-flex;
+        align-items: center;
+      }
+      .hero-logo-strip-row img {
+        width: auto;
+        display: block;
+      }
+      .hero-logo-strip-row img.logo-eth    { height: 32px; }
+      .hero-logo-strip-row img.logo-google { height: 56px; }
+      .hero-logo-strip-row img.logo-ucph   { height: 54px; }
+      .hero-logo-strip-row .logo-num {
+        font-family: "Google Sans", sans-serif;
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: #94a3b8;
+        margin-left: 2px;
+        align-self: flex-start;
+        line-height: 1;
+        padding-top: 6px;
+        letter-spacing: 0.01em;
+      }
+      .hero-logo-strip-row .logo-x {
+        font-family: "Google Sans", sans-serif;
+        color: #cbd5e1;
+        font-size: 1.25rem;
+        font-weight: 300;
+        user-select: none;
+      }
+      @media (max-width: 768px) {
+        .hero-logo-strip-row { gap: 20px; }
+        .hero-logo-strip-row img.logo-eth    { height: 22px; }
+        .hero-logo-strip-row img.logo-google { height: 40px; }
+        .hero-logo-strip-row img.logo-ucph   { height: 40px; }
+        .hero-logo-strip-row .logo-num { font-size: 0.72rem; padding-top: 4px; }
+      }
+      @media (max-width: 480px) {
+        .hero-logo-strip-row { gap: 14px; }
+        .hero-logo-strip-row img.logo-eth    { height: 16px; }
+        .hero-logo-strip-row img.logo-google { height: 30px; }
+        .hero-logo-strip-row img.logo-ucph   { height: 30px; }
+        .hero-logo-strip-row .logo-num { font-size: 0.65rem; padding-top: 2px; }
+      }
+
+      .method-card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
+        margin: 1.25rem 0;
+      }
+      .method-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 1rem 1.1rem;
+        text-align: left;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      }
+      .method-card h5 {
+        font-family: "Google Sans", sans-serif;
+        font-weight: 600;
+        font-size: 1rem;
+        margin: 0 0 0.4rem 0;
+      }
+      .method-card .needs {
+        margin-top: 0.5rem;
+        font-size: 0.85rem;
+        color: #485fc7;
+        font-weight: 600;
+      }
+
+      /* Sticky story-rail mini-TOC */
+      .story-rail {
+        position: fixed;
+        right: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 90;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        background: rgba(255, 255, 255, 0.88);
+        -webkit-backdrop-filter: blur(6px);
+        backdrop-filter: blur(6px);
+        padding: 12px 8px;
+        border-radius: 999px;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+      }
+      @media (max-width: 1100px) {
+        .story-rail { display: none; }
+      }
+      .story-rail a {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "Google Sans", sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        color: #9ca3af;
+        background: transparent;
+        position: relative;
+        text-decoration: none !important;
+        transition: color 0.2s ease, background 0.2s ease;
+      }
+      .story-rail a:hover {
+        color: #065f46;
+      }
+      .story-rail a.is-active {
+        color: #065f46;
+        background: #d1fae5;
+      }
+      .story-rail a::after {
+        content: attr(data-label);
+        position: absolute;
+        right: 38px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: #1f2937;
+        color: #fff;
+        padding: 4px 9px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        white-space: nowrap;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.15s ease;
+      }
+      .story-rail a:hover::after,
+      .story-rail a.is-active::after {
+        opacity: 0.92;
+      }
+
+      /* Headline-stats strip — surfaced above the fold */
+      .headline-stats {
+        max-width: 940px;
+        margin: 1.6rem auto 0 auto;
+        padding: 0 1rem;
+      }
+      .headline-stats-lead {
+        font-family: "Google Sans", sans-serif;
+        text-align: center;
+        font-size: 0.78rem;
+        letter-spacing: 0.18em;
+        font-weight: 700;
+        color: #047857;
+        margin-bottom: 0.65rem;
+        text-transform: uppercase;
+      }
+      .headline-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.7rem;
+      }
+      @media (max-width: 768px) {
+        .headline-stats-grid { grid-template-columns: repeat(2, 1fr); }
+      }
+      .headline-stat {
+        background: #fff;
+        border: 1px solid #d1fae5;
+        border-top: 3px solid #10b981;
+        border-radius: 10px;
+        padding: 0.7rem 0.85rem 0.75rem 0.85rem;
+        box-shadow: 0 2px 8px rgba(16, 185, 129, 0.06);
+      }
+      .headline-stat-method {
+        font-family: "Google Sans", sans-serif;
+        font-size: 0.66rem;
+        letter-spacing: 0.10em;
+        color: #6b7280;
+        text-transform: uppercase;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+      }
+      .headline-stat-num {
+        font-family: "Google Sans", sans-serif;
+        font-size: 1.55rem;
+        font-weight: 700;
+        color: #065f46;
+        line-height: 1.05;
+      }
+      .headline-stat-num .unit {
+        font-size: 0.78rem;
+        font-weight: 500;
+        color: #047857;
+        letter-spacing: 0.02em;
+      }
+      .headline-stat-detail {
+        font-size: 0.74rem;
+        color: #4b5563;
+        line-height: 1.35;
+        margin-top: 0.25rem;
+      }
+
+      /* TL;DR elevator-pitch section */
+      .tldr-section {
+        background: linear-gradient(135deg, #eef2ff 0%, #f8fafc 55%, #ecfdf5 100%);
+        border-top: 1px solid #e5e7eb;
+        border-bottom: 1px solid #e5e7eb;
+      }
+      /* Viral pull-quote between title and stats */
+      .tldr-pullquote {
+        font-family: "Castoro", "Times New Roman", serif;
+        font-style: italic;
+        font-size: clamp(1.05rem, 0.9rem + 0.55vw, 1.3rem);
+        color: #1f2937;
+        max-width: 760px;
+        margin: 0.7rem auto 1.6rem auto;
+        line-height: 1.55;
+        position: relative;
+        padding: 0.4rem 1.2rem;
+      }
+      /* Tight pure-claim sub-headline (replaces mechanism-y pullquote) */
+      .tldr-claim-sub {
+        font-family: "Google Sans", sans-serif;
+        font-size: clamp(1rem, 0.88rem + 0.35vw, 1.18rem);
+        color: #1f2937;
+        max-width: 820px;
+        margin: 0.7rem auto 0 auto;
+        line-height: 1.55;
+        text-align: center;
+        font-weight: 500;
+      }
+      .tldr-claim-sub strong { color: #065f46; font-weight: 700; }
+      /* Tiny block eyebrows that label Claim / What we do / Impact */
+      .tldr-block-eyebrow {
+        font-family: "Google Sans", sans-serif;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        color: #6b7280;
+        text-transform: uppercase;
+        text-align: center;
+        margin: 2rem 0 0.55rem 0;
+      }
+      .tldr-block-eyebrow .eyebrow-num {
+        color: #10b981;
+        margin-right: 0.4em;
+      }
+      .tldr-block-eyebrow.is-impact { color: #047857; }
+      .tldr-block-eyebrow.is-impact .eyebrow-num { color: #047857; }
+      .tldr-pullquote::before {
+        content: "❝";
+        position: absolute;
+        left: -2px;
+        top: -22px;
+        font-size: 2.6rem;
+        color: #fbbf24;
+        line-height: 1;
+        font-family: Georgia, serif;
+        opacity: 0.7;
+      }
+      .tldr-pullquote::after {
+        content: "❞";
+        position: absolute;
+        right: -2px;
+        bottom: -28px;
+        font-size: 2.6rem;
+        color: #fbbf24;
+        line-height: 1;
+        font-family: Georgia, serif;
+        opacity: 0.7;
+      }
+      .tldr-pullquote strong {
+        color: #0f172a;
+        font-weight: 700;
+      }
+      .tldr-pullquote .pull-mark {
+        background: linear-gradient(180deg, transparent 65%, #fde047 65%);
+        padding: 0 0.1em;
+        font-style: normal;
+        font-weight: 700;
+        color: #0f172a;
+      }
+      /* "Plug it into" recipe tag row */
+      .tldr-plug-lead {
+        font-family: "Google Sans", sans-serif;
+        font-size: 0.74rem;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        color: #047857;
+        text-transform: uppercase;
+        text-align: center;
+        margin: 1.6rem 0 0.7rem 0;
+      }
+      .tldr-plug-row {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.5rem;
+        max-width: 820px;
+        margin: 0 auto;
+      }
+      .tldr-plug-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.4rem 0.95rem;
+        border-radius: 999px;
+        background: #ffffff;
+        border: 1px solid #a7f3d0;
+        color: #065f46;
+        font-family: "Google Sans", sans-serif;
+        font-size: 0.86rem;
+        font-weight: 600;
+        box-shadow: 0 1px 4px rgba(16, 185, 129, 0.08);
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+      .tldr-plug-tag:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(16, 185, 129, 0.15);
+      }
+      .tldr-plug-tag .plug-num {
+        font-family: "Google Sans", sans-serif;
+        background: #d1fae5;
+        color: #065f46;
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 1px 6px;
+        border-radius: 999px;
+        margin-right: 0.15rem;
+      }
+      /* Tighter stats card spacing now that they're up top */
+      .tldr-section .headline-stats {
+        margin-top: 0.4rem;
+      }
+
+      /* === "Why?" one-line unifying reason — sits ABOVE the cards as setup === */
+      .stat-why-oneline {
+        max-width: 940px;
+        margin: 0 auto 0.85rem auto;
+        padding: 0.3rem 0.4rem;
+        font-size: clamp(0.88rem, 0.8rem + 0.32vw, 1.0rem);
+        color: #1f2937;
+        line-height: 1.65;
+        text-align: center;
+      }
+      .stat-why-oneline strong {
+        color: #065f46;
+        font-weight: 700;
+      }
+      .stat-why-eyebrow-inline {
+        display: inline-block;
+        font-family: "Google Sans", sans-serif;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        background: #d1fae5;
+        color: #065f46;
+        padding: 2px 9px;
+        border-radius: 999px;
+        text-transform: uppercase;
+        margin-right: 0.45rem;
+        vertical-align: 0.08em;
+      }
+      .stat-why-strike {
+        color: #94a3b8;
+        font-style: italic;
+      }
+      .stat-why-arrow {
+        color: #10b981;
+        font-weight: 700;
+        margin: 0 0.3em;
+        font-size: 1.1em;
+        vertical-align: -0.04em;
+      }
+      .stat-why-arrow.stat-why-down {
+        font-size: 1.25em;
+        margin-left: 0.2em;
+      }
+      .tldr-badge {
+        display: inline-block;
+        background: #485fc7;
+        color: #fff;
+        font-family: "Google Sans", sans-serif;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        font-size: 0.85rem;
+        padding: 0.35rem 1.1rem;
+        border-radius: 999px;
+        box-shadow: 0 4px 10px rgba(72, 95, 199, 0.25);
+      }
+      .tldr-title {
+        margin-top: 1.1rem !important;
+        margin-bottom: 1.75rem !important;
+        line-height: 1.35;
+      }
+      .tldr-em-from {
+        color: #1f2937;
+        background: linear-gradient(180deg, transparent 65%, #fde68a 65%);
+        padding: 0 0.15em;
+      }
+      .tldr-em-to {
+        color: #1d4ed8;
+        background: linear-gradient(180deg, transparent 65%, #bfdbfe 65%);
+        padding: 0 0.15em;
+      }
+      .transformation {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 1.5rem;
+        align-items: center;
+        margin-top: 1.75rem;
+      }
+      @media (max-width: 768px) {
+        .transformation {
+          grid-template-columns: 1fr;
+        }
+        .arrow-glyph {
+          transform: rotate(90deg);
+        }
+      }
+      .transformation-col-label {
+        font-family: "Google Sans", sans-serif;
+        font-size: 0.72rem;
+        letter-spacing: 0.14em;
+        color: #6b7280;
+        margin-bottom: 0.7rem;
+        font-weight: 600;
+      }
+      .pill-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        justify-content: center;
+      }
+      .pill {
+        background: #ffffff;
+        border: 1px solid #d1d5db;
+        border-radius: 999px;
+        padding: 0.4rem 0.9rem;
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: #1f2937;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      }
+      .pill-faded {
+        color: #9ca3af;
+        border-style: dashed;
+        background: transparent;
+        box-shadow: none;
+      }
+      .transformation-arrow {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 0 0.25rem;
+      }
+      .arrow-glyph {
+        font-family: "Google Sans", sans-serif;
+        font-size: 3.2rem;
+        color: #485fc7;
+        font-weight: 700;
+        line-height: 1;
+      }
+      .arrow-caption {
+        margin-top: 0.4rem;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #1f2937;
+      }
+      .arrow-cost {
+        font-weight: 400;
+        font-size: 0.8rem;
+        color: #6b7280;
+        display: block;
+        margin-top: 0.15rem;
+      }
+      .output-card {
+        background: #485fc7;
+        color: #fff;
+        border-radius: 12px;
+        padding: 1rem 1.2rem;
+        font-size: 0.98rem;
+        line-height: 1.55;
+        box-shadow: 0 6px 18px rgba(72, 95, 199, 0.22);
+        text-align: left;
+      }
+      .output-card strong {
+        color: #fde68a;
+      }
+      .thumb-row {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 0.9rem;
+      }
+      .thumb {
+        width: 110px;
+        height: 82px;
+        border-radius: 8px;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+        flex-shrink: 0;
+      }
+      .thumb-meta {
+        text-align: left;
+        line-height: 1.25;
+      }
+      .thumb-symbol {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #1f2937;
+        font-family: "Castoro", "Times New Roman", serif;
+      }
+      .thumb-desc {
+        font-size: 0.85rem;
+        color: #6b7280;
+      }
+
+      /* Pipeline comparison diagram */
+      .pipeline-card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        padding: 1.75rem 1.5rem;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+        margin: 1.25rem 0 0.5rem 0;
+      }
+      .pipeline-row {
+        padding: 0.5rem 0;
+      }
+      .pipeline-label {
+        font-family: "Google Sans", sans-serif;
+        font-size: 0.78rem;
+        letter-spacing: 0.12em;
+        color: #6b7280;
+        text-transform: uppercase;
+        margin-bottom: 0.8rem;
+        font-weight: 600;
+      }
+      .pipeline-label-good {
+        color: #1e40af;
+      }
+      .pipeline-chain {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+        justify-content: center;
+        padding: 0.25rem 0;
+      }
+      .pipeline-chain .node {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.45rem 0.85rem;
+        border-radius: 8px;
+        font-family: "Courier New", monospace;
+        font-size: 0.95rem;
+        font-weight: 600;
+        background: #f3f4f6;
+        border: 1.5px solid #d1d5db;
+        color: #1f2937;
+        white-space: nowrap;
+      }
+      .node-noisy {
+        background: #fef3c7 !important;
+        border-color: #fbbf24 !important;
+      }
+      .node-clean {
+        background: #d1fae5 !important;
+        border-color: #34d399 !important;
+      }
+      .node-process {
+        background: #ede9fe !important;
+        border-color: #a78bfa !important;
+        font-family: "Google Sans", sans-serif !important;
+      }
+      .node-stitch {
+        background: linear-gradient(135deg, #485fc7, #1e3a8a) !important;
+        border-color: #1e3a8a !important;
+        color: #fff !important;
+        font-family: "Google Sans", sans-serif !important;
+        box-shadow: 0 3px 10px rgba(72, 95, 199, 0.35);
+        padding: 0.5rem 1rem !important;
+      }
+      .node-output {
+        background: #ffffff !important;
+        border-color: #6b7280 !important;
+        font-family: "Castoro", serif !important;
+      }
+      .pipeline-arrow {
+        color: #9ca3af;
+        font-size: 1.1rem;
+        font-weight: 700;
+        user-select: none;
+      }
+      .pipeline-dots {
+        color: #9ca3af;
+        font-size: 1.3rem;
+        padding: 0 0.2rem;
+        font-weight: 700;
+      }
+      .pipeline-note {
+        margin-top: 0.75rem;
+        font-size: 0.9rem;
+        color: #4b5563;
+        text-align: center;
+        line-height: 1.55;
+      }
+      .pipeline-divider {
+        text-align: center;
+        font-family: "Google Sans", sans-serif;
+        font-weight: 700;
+        letter-spacing: 0.25em;
+        color: #9ca3af;
+        font-size: 0.85rem;
+        margin: 1.5rem 0 0.75rem 0;
+        position: relative;
+      }
+      .pipeline-divider::before,
+      .pipeline-divider::after {
+        content: "";
+        display: inline-block;
+        width: 90px;
+        height: 1px;
+        background: #e5e7eb;
+        vertical-align: middle;
+        margin: 0 0.9rem;
+      }
+
+      /* Translation diagram — shows pixel reward R being repurposed as StitchVM */
+      .translation-card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        padding: 2rem 1.5rem;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+        margin: 1.25rem 0;
+      }
+      .model-row {
+        padding: 0.5rem 0;
+      }
+      .model-row-header {
+        text-align: center;
+        margin-bottom: 0.9rem;
+      }
+      .model-row-name {
+        display: block;
+        font-family: "Google Sans", sans-serif;
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: #1f2937;
+      }
+      .model-row-sub {
+        display: block;
+        font-size: 0.85rem;
+        color: #6b7280;
+        margin-top: 0.2rem;
+      }
+      .model-chain {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .block {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.55rem 0.95rem;
+        border-radius: 8px;
+        font-family: "Google Sans", sans-serif;
+        font-size: 0.92rem;
+        font-weight: 600;
+        border: 1.5px solid;
+      }
+      .block-discarded {
+        background: #f9fafb;
+        border-color: #d1d5db;
+        color: #9ca3af;
+        text-decoration: line-through;
+        text-decoration-color: rgba(156, 163, 175, 0.55);
+        text-decoration-thickness: 1.5px;
+      }
+      .block-tail {
+        background: linear-gradient(135deg, #fef3c7, #fde68a);
+        border-color: #f59e0b;
+        color: #78350f;
+        box-shadow: 0 2px 6px rgba(245, 158, 11, 0.2);
+      }
+      .block-diffusion {
+        background: #ede9fe;
+        border-color: #a78bfa;
+        color: #4c1d95;
+      }
+      .block-stitch {
+        background: #d1fae5;
+        border-color: #34d399;
+        color: #065f46;
+      }
+      .block-annotation {
+        font-size: 0.72rem;
+        font-weight: 500;
+        color: #92400e;
+        margin-left: 0.45rem;
+        opacity: 0.9;
+      }
+      .input-block {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
+      }
+      .input-note {
+        font-size: 0.7rem;
+        color: #b91c1c;
+        font-style: italic;
+        font-weight: 500;
+        white-space: nowrap;
+      }
+      .input-note-good {
+        color: #065f46;
+      }
+      .reuse-connector {
+        text-align: center;
+        margin: 1rem 0;
+        position: relative;
+      }
+      .reuse-connector::before {
+        content: "";
+        display: block;
+        height: 28px;
+        width: 2px;
+        background: repeating-linear-gradient(
+          to bottom,
+          #f59e0b 0,
+          #f59e0b 5px,
+          transparent 5px,
+          transparent 10px
+        );
+        margin: 0 auto;
+      }
+      .reuse-label {
+        display: inline-block;
+        margin-top: 0.4rem;
+        font-size: 0.85rem;
+        color: #92400e;
+        font-weight: 600;
+        background: #fef3c7;
+        padding: 0.3rem 0.85rem;
+        border-radius: 999px;
+        border: 1px dashed #f59e0b;
+      }
+      .translation-footer {
+        margin-top: 1.5rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid #e5e7eb;
+        font-size: 0.95rem;
+        color: #374151;
+        text-align: center;
+        line-height: 1.6;
+      }
+      .translation-footer strong {
+        color: #b45309;
+      }
+
+      /* === Vertical teaser — two rows of the SAME Reward model with a connecting
+         "stitching" arrow between the two pill positions. CSS Grid is used so the
+         two Reward model pills land in the same column → the StitchVM arrow goes
+         straight down from one to the other, making the "same model, ported"
+         message instantly readable. */
+      .teaser-figure {
+        container-type: inline-size;
+        container-name: teaser;
+        background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+        border: 1.5px solid #c7d2fe;
+        border-radius: 14px;
+        box-shadow: 0 4px 14px rgba(72, 95, 199, 0.07);
+        padding: 1.3em 1.5em 1.1em 1.5em;
+        margin: 1.25rem auto 0.5rem auto;
+        max-width: 920px;
+        box-sizing: border-box;
+      }
+      .teaser-grid {
+        font-size: clamp(14px, 2.3cqi, 20px);
+        display: grid;
+        /* 6 columns: thumb | input-label | arrow | pill | arrow | output */
+        grid-template-columns: auto auto auto auto auto auto;
+        column-gap: 0.7em;
+        row-gap: 0.35em;
+        justify-content: center;
+        align-items: center;
+        justify-items: center;
+        position: relative;
+      }
+      .teaser-thumb {
+        width: 3.4em;
+        height: 2.55em;
+        border-radius: 0.35em;
+        flex-shrink: 0;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+      }
+      .teaser-input-label {
+        font-family: "Castoro", serif;
+        font-style: italic;
+        font-size: 1.05em;
+        color: #1f2937;
+        white-space: nowrap;
+      }
+      .teaser-arrow {
+        color: #9ca3af;
+        font-size: 1.2em;
+        font-weight: 700;
+      }
+      /* Reward model pill — IDENTICAL in both rows, this is the whole point */
+      .teaser-rm-pill {
+        font-family: "Google Sans", sans-serif;
+        font-size: 1.02em;
+        font-weight: 700;
+        white-space: nowrap;
+        background: #fff;
+        border: 1.5px solid #a78bfa;
+        border-radius: 0.45em;
+        padding: 0.45em 0.95em;
+        color: #5b21b6;
+        box-shadow: 0 1px 3px rgba(91, 33, 182, 0.1);
+      }
+      .teaser-output {
+        font-family: "Castoro", serif;
+        font-style: italic;
+        font-size: 1.2em;
+        font-weight: 700;
+        color: #1f2937;
+        white-space: nowrap;
+      }
+      /* EXISTING / OURS chips — centered in the pill column above each row */
+      .teaser-side-label {
+        font-family: "Google Sans", sans-serif;
+        font-size: 0.66em;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        padding: 0.15em 0.75em;
+        border-radius: 999px;
+        text-transform: uppercase;
+      }
+      .teaser-side-label-existing { background: #f3f4f6; color: #6b7280; border: 1px solid #e5e7eb; }
+      .teaser-side-label-ours { background: #485fc7; color: #fff; }
+      /* StitchVM transition — compact horizontal pill matching Image #21 format:
+         "StitchVM ↓ small compute" all inline, with a subtle pill background to give
+         it presence as the central "action" between the two Reward model rows. */
+      .teaser-transition {
+        display: inline-flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 0.45em;
+        padding: 0.35em 0.85em;
+        background: rgba(255, 255, 255, 0.65);
+        border: 1px solid #c7d2fe;
+        border-radius: 999px;
+        box-shadow: 0 1px 3px rgba(67, 56, 202, 0.08);
+      }
+      .teaser-transition-name {
+        font-family: "Google Sans", sans-serif;
+        font-weight: 700;
+        font-size: 1.05em;
+        color: #1e3a8a;
+        line-height: 1;
+        letter-spacing: -0.005em;
+      }
+      .teaser-transition-arrow {
+        display: block;
+        width: 1.1em;
+        height: 1.3em;
+        filter: drop-shadow(0 1px 1px rgba(67, 56, 202, 0.2));
+      }
+      .teaser-transition-cost {
+        font-family: "Castoro", serif;
+        font-style: italic;
+        font-size: 0.85em;
+        color: #4338ca;
+        line-height: 1;
+        white-space: nowrap;
+      }
+      /* Soft vertical "porting" line passing through the transition pill, visually
+         connecting the two Reward model pills above and below. The line is drawn as a
+         pseudo-element BEHIND the transition pill — only the portions extending above
+         and below the pill are visible. */
+      .teaser-transition { position: relative; }
+      .teaser-transition::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: -0.55em;
+        bottom: -0.55em;
+        width: 2px;
+        background: linear-gradient(180deg,
+          rgba(67, 56, 202, 0) 0%,
+          rgba(67, 56, 202, 0.45) 10%,
+          rgba(67, 56, 202, 0.45) 90%,
+          rgba(67, 56, 202, 0) 100%);
+        transform: translateX(-50%);
+        z-index: -1;
+      }
+      /* Grid placement — explicit so the pills and transition all share column 4 */
+      .grid-row-existing-badge { grid-row: 1; grid-column: 4; padding-bottom: 0.15em; }
+      .grid-row1-thumb        { grid-row: 2; grid-column: 1; }
+      .grid-row1-label        { grid-row: 2; grid-column: 2; }
+      .grid-row1-arrow-in     { grid-row: 2; grid-column: 3; }
+      .grid-row1-pill         { grid-row: 2; grid-column: 4; }
+      .grid-row1-arrow-out    { grid-row: 2; grid-column: 5; }
+      .grid-row1-output       { grid-row: 2; grid-column: 6; }
+
+      .grid-transition        { grid-row: 3; grid-column: 4; }
+
+      .grid-row-ours-badge    { grid-row: 4; grid-column: 4; padding-top: 0.15em; }
+      .grid-row2-thumb        { grid-row: 5; grid-column: 1; }
+      .grid-row2-label        { grid-row: 5; grid-column: 2; }
+      .grid-row2-arrow-in     { grid-row: 5; grid-column: 3; }
+      .grid-row2-pill         { grid-row: 5; grid-column: 4; }
+      .grid-row2-arrow-out    { grid-row: 5; grid-column: 5; }
+      .grid-row2-output       { grid-row: 5; grid-column: 6; }
+
+      .teaser-caption {
+        font-family: "Castoro", serif;
+        font-style: italic;
+        font-size: 1rem;
+        color: #475569;
+        text-align: center;
+        margin: 1em 0 0 0;
+        line-height: 1.5;
+        text-wrap: balance;
+      }
+      .teaser-caption strong {
+        color: #1e3a8a;
+        font-style: normal;
+        font-weight: 700;
+      }
+      .teaser-caption .accent-cost {
+        color: #b45309;
+        font-style: normal;
+        font-weight: 700;
+      }
+      @supports not (container-type: inline-size) {
+        .teaser-grid { font-size: clamp(12px, 1.4vw, 17px); }
+      }
+
+      /* Simple side-by-side comparison: pixel reward vs StitchVM */
+      .compare-card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+        margin: 1.25rem 0;
+      }
+      .compare-row {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 1rem;
+        align-items: center;
+      }
+      @media (max-width: 768px) {
+        .compare-row {
+          grid-template-columns: 1fr;
+        }
+        .compare-transfer-arrow {
+          transform: rotate(90deg);
+        }
+      }
+      .compare-transfer {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 0.5rem 0.3rem;
+        min-width: 130px;
+      }
+      .compare-transfer-arrow {
+        font-size: 3rem;
+        font-weight: 700;
+        color: #485fc7;
+        line-height: 1;
+        display: inline-block;
+      }
+      .compare-transfer-name {
+        margin-top: 0.4rem;
+        font-family: "Google Sans", sans-serif;
+        font-weight: 700;
+        font-size: 1.05rem;
+        color: #1e3a8a;
+      }
+      .compare-transfer-action {
+        margin-top: 0.15rem;
+        font-size: 0.8rem;
+        color: #4b5563;
+        line-height: 1.35;
+      }
+      .compare-transfer-cost {
+        margin-top: 0.5rem;
+        font-size: 0.88rem;
+        color: #485fc7;
+        font-weight: 500;
+        font-style: italic;
+      }
+      .tldr-subtitle {
+        margin-top: 0.85rem;
+        max-width: 640px;
+        margin-left: auto;
+        margin-right: auto;
+        font-family: "Google Sans", sans-serif;
+        font-size: 1.1rem;
+        color: #4b5563;
+        line-height: 1.55;
+      }
+      .compare-col {
+        background: #fafafa;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1.5rem 1.25rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+      .compare-col-ours {
+        background: linear-gradient(135deg, #eef2ff, #f8fafc);
+        border-color: #485fc7;
+        border-width: 2px;
+      }
+      .compare-badge {
+        display: inline-block;
+        font-family: "Google Sans", sans-serif;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        font-size: 0.7rem;
+        padding: 0.28rem 0.85rem;
+        border-radius: 999px;
+        margin-bottom: 0.85rem;
+      }
+      .compare-badge-existing {
+        background: #f3f4f6;
+        color: #6b7280;
+      }
+      .compare-badge-ours {
+        background: #485fc7;
+        color: #ffffff;
+      }
+      .compare-title {
+        font-family: "Google Sans", sans-serif;
+        font-size: 1.15rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 1.1rem;
+      }
+      .compare-flow {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.45rem;
+      }
+      .compare-input-label {
+        font-size: 0.92rem;
+        color: #374151;
+        margin-top: 0.2rem;
+      }
+      .compare-flow-arrow {
+        color: #9ca3af;
+        font-size: 1.4rem;
+        line-height: 1;
+        font-weight: 700;
+      }
+      .compare-model {
+        background: #ede9fe;
+        border: 1.5px solid #a78bfa;
+        color: #4c1d95;
+        padding: 0.6rem 1.1rem;
+        border-radius: 8px;
+        font-family: "Google Sans", sans-serif;
+        font-weight: 600;
+        font-size: 1rem;
+      }
+      .compare-col-ours .compare-model {
+        background: linear-gradient(135deg, #485fc7, #1e3a8a);
+        color: #ffffff;
+        border-color: #1e3a8a;
+        box-shadow: 0 4px 14px rgba(72, 95, 199, 0.35);
+      }
+      .compare-output {
+        font-family: "Castoro", serif;
+        font-size: 1.5rem;
+        color: #1f2937;
+        padding: 0.3rem 1rem;
+        border: 1.5px solid #d1d5db;
+        border-radius: 8px;
+        background: #ffffff;
+      }
+      .compare-sub {
+        margin-top: 1.1rem;
+        font-size: 0.88rem;
+        color: #6b7280;
+        line-height: 1.55;
+      }
+      .compare-caption {
+        margin: 0 auto 1.5rem auto;
+        max-width: 660px;
+        font-family: "Google Sans", sans-serif;
+        font-size: 1.05rem;
+        color: #4b5563;
+        line-height: 1.55;
+        text-align: center;
+      }
+      .why-blocks {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin: 1.5rem 0;
+        text-align: left;
+      }
+      .why-block {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1.1rem 1.4rem 1.25rem 1.4rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+      }
+      .why-block-header {
+        font-family: "Google Sans", sans-serif;
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 0.55rem;
+      }
+      .why-block-examples {
+        font-weight: 400;
+        font-size: 0.85rem;
+        color: #6b7280;
+        margin-left: 0.4rem;
+        font-style: italic;
+      }
+      .why-block-form {
+        background: #f8fafc;
+        border-left: 3px solid #485fc7;
+        padding: 0.65rem 1rem;
+        margin: 0.4rem 0 0.8rem 0;
+        border-radius: 4px;
+      }
+      .why-block-form-math {
+        text-align: center;
+        font-size: 1.02rem;
+        margin: 0.15rem 0 0.35rem 0;
+      }
+      .why-block-form-desc {
+        font-size: 0.86rem;
+        color: #4b5563;
+        font-style: italic;
+        line-height: 1.45;
+      }
+      .why-block-why {
+        font-size: 0.95rem;
+        color: #374151;
+        line-height: 1.6;
+      }
+      .why-block-why-label {
+        font-family: "Google Sans", sans-serif;
+        font-weight: 700;
+        color: #1e40af;
+        margin-right: 0.3em;
+      }
+      .concepts-preview {
+        margin: 1.5rem 0;
+      }
+      .concepts-preview-title {
+        font-family: "Google Sans", sans-serif;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #6b7280;
+        text-align: center;
+        margin-bottom: 1rem;
+      }
+      .concept-card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1.2rem 1.5rem 1.4rem 1.5rem;
+        margin: 1rem 0;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+      }
+      .concept-label {
+        display: inline-block;
+        background: #485fc7;
+        color: #fff;
+        font-family: "Google Sans", sans-serif;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        padding: 0.25rem 0.7rem;
+        border-radius: 999px;
+        margin-bottom: 0.5rem;
+      }
+      .concept-svg-wrap {
+        width: 100%;
+        max-width: 720px;
+        margin: 0.5rem auto;
+      }
+      .concept-svg-wrap svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      .concept-caption {
+        font-size: 0.9rem;
+        color: #4b5563;
+        text-align: center;
+        margin-top: 0.5rem;
+        font-style: italic;
+        line-height: 1.5;
+      }
+      .act2-punchline {
+        font-size: 1.25rem;
+        font-style: normal;
+        color: #1f2937;
+        line-height: 1.55;
+        max-width: 820px;
+        margin: 1.25rem auto 0 auto;
+      }
+      .act2-punchline-hit {
+        display: block;
+        margin-top: 0.4rem;
+        font-size: 1.45rem;
+        color: #065f46;
+        font-weight: 700;
+      }
+      .act3-figure-caption {
+        font-size: 1rem;
+        font-style: normal;
+        color: #374151;
+        max-width: 800px;
+        margin: 0.8rem auto 0 auto;
+        line-height: 1.5;
+      }
+      .act3-howitworks {
+        font-size: 1.02rem;
+        color: #374151;
+        line-height: 1.6;
+        max-width: 820px;
+        margin: 0 auto 1.75rem auto;
+        text-align: left;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-left: 3px solid #10b981;
+        border-radius: 6px;
+        padding: 0.9rem 1.15rem;
+      }
+      .reach-section {
+        max-width: 980px;
+        margin: 1.5rem auto 0 auto;
+        text-align: left;
+      }
+      .reach-section-label {
+        font-family: "Google Sans", sans-serif;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        margin-bottom: 0.2rem;
+        text-align: center;
+      }
+      .reach-inference-label { color: #485fc7; }
+      .reach-training-label { color: #ea580c; }
+      .reach-section-title {
+        font-family: "Google Sans", sans-serif;
+        font-size: 1.45rem;
+        font-weight: 700;
+        color: #1f2937;
+        text-align: center;
+        margin-bottom: 1.1rem;
+        line-height: 1.3;
+      }
+      .reach-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+      }
+      .reach-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1.2rem 1.4rem 1.3rem 1.4rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+        border-top: 4px solid #e5e7eb;
+      }
+      .reach-inference { border-top-color: #485fc7; }
+      .reach-training { border-top-color: #ea580c; }
+      .reach-item-title {
+        font-family: "Google Sans", sans-serif;
+        font-size: 1.18rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+        line-height: 1.3;
+      }
+      .reach-item-examples {
+        display: block;
+        font-size: 0.82rem;
+        font-weight: 500;
+        color: #9ca3af;
+        font-style: italic;
+        letter-spacing: 0.02em;
+        margin-top: 0.15rem;
+      }
+      .reach-item-problem {
+        font-size: 0.93rem;
+        color: #6b7280;
+        line-height: 1.55;
+        margin: 0.4rem 0 0.7rem 0;
+      }
+      .reach-item-problem strong {
+        color: #991b1b;
+      }
+      .reach-item-solution {
+        font-size: 0.97rem;
+        color: #1f2937;
+        line-height: 1.55;
+        margin: 0;
+        background: #ecfdf5;
+        border-left: 3px solid #10b981;
+        padding: 0.55rem 0.7rem;
+        border-radius: 0 6px 6px 0;
+      }
+      .reach-item-solution strong {
+        color: #065f46;
+      }
+      .reach-fig-wrap {
+        background: #fafafa;
+        border: 1px solid #f3f4f6;
+        border-radius: 8px;
+        padding: 0.5rem 0.6rem;
+        margin: 0.55rem 0 0.7rem 0;
+      }
+      .reach-fig-wrap svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      .reach-item-caption {
+        font-size: 0.93rem;
+        color: #1f2937;
+        line-height: 1.5;
+        margin: 0;
+      }
+      .reach-payoff {
+        font-size: 1.2rem;
+        color: #1f2937;
+        text-align: center;
+        max-width: 800px;
+        margin: 2rem auto 0 auto;
+        line-height: 1.5;
+      }
+      .reach-payoff strong {
+        display: block;
+        margin-top: 0.3rem;
+        font-size: 1.35rem;
+        color: #065f46;
+        font-weight: 700;
+      }
+      /* === RESULTS section === */
+      .results-eyebrow {
+        font-family: "Google Sans", sans-serif;
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: 0.22em;
+        color: #10b981;
+        text-align: center;
+        margin-bottom: 0.6rem;
+      }
+      .results-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        max-width: 920px;
+        margin: 1.5rem auto 2.5rem auto;
+      }
+      @media (min-width: 900px) {
+        .results-stats-grid { grid-template-columns: repeat(4, 1fr); }
+      }
+      .stat-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1rem 1.1rem 1.1rem 1.1rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+        border-top: 4px solid #10b981;
+        text-align: left;
+      }
+      .stat-card-method {
+        font-family: "Google Sans", sans-serif;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        color: #6b7280;
+        text-transform: uppercase;
+        margin-bottom: 0.35rem;
+      }
+      .stat-card-number {
+        font-family: "Google Sans", sans-serif;
+        font-size: 2rem;
+        font-weight: 700;
+        color: #065f46;
+        line-height: 1.05;
+        margin-bottom: 0.15rem;
+      }
+      .stat-card-number .stat-unit {
+        font-size: 0.92rem;
+        font-weight: 500;
+        color: #047857;
+        letter-spacing: 0.02em;
+      }
+      .stat-card-detail {
+        font-size: 0.84rem;
+        color: #4b5563;
+        line-height: 1.45;
+        margin: 0.15rem 0 0 0;
+      }
+      .result-block {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+        padding: 1.3rem 1.5rem 1.4rem 1.5rem;
+        margin: 1.5rem 0;
+        text-align: left;
+      }
+      .result-block-eyebrow {
+        font-family: "Google Sans", sans-serif;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        color: #10b981;
+        margin-bottom: 0.25rem;
+      }
+      .result-block-title {
+        font-family: "Google Sans", sans-serif;
+        font-size: 1.28rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 0.6rem;
+        line-height: 1.3;
+      }
+      .result-block-lead {
+        font-size: 0.98rem;
+        color: #1f2937;
+        line-height: 1.55;
+        margin-bottom: 0.9rem;
+      }
+      .result-fig {
+        margin: 0.6rem auto;
+        max-width: 920px;
+      }
+      .result-fig img {
+        display: block;
+        width: 100%;
+        height: auto;
+        border-radius: 6px;
+      }
+      .result-fig-caption {
+        font-size: 0.86rem;
+        color: #4b5563;
+        text-align: center;
+        font-style: italic;
+        line-height: 1.5;
+        margin-top: 0.5rem;
+      }
+      /* Paper-style multi-panel layout (Result 1) */
+      .result-fig-paper {
+        margin: 0.6rem auto 0 auto;
+        max-width: 980px;
+      }
+      .result-fig-paper img {
+        display: block;
+        width: 100%;
+        height: auto;
+        border-radius: 4px;
+      }
+      .result-fig-paper-row {
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 14px;
+        margin-top: 12px;
+        flex-wrap: wrap;
+      }
+      .result-fig-paper-row .panel-pref { flex: 0 1 460px; max-width: 480px; }
+      .result-fig-paper-row .panel-aes  { flex: 0 1 230px; max-width: 230px; }
+      .result-fig-paper-row .panel-leg  { flex: 0 1 200px; max-width: 200px; align-self: center; }
+
+      .act3-punchline {
+        font-size: 1.2rem;
+        color: #1f2937;
+        line-height: 1.55;
+        max-width: 820px;
+        margin: 1.5rem auto 0 auto;
+        text-align: center;
+      }
+      .act3-punchline-hit {
+        display: block;
+        margin-top: 0.35rem;
+        font-size: 1.4rem;
+        color: #065f46;
+        font-weight: 700;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Sticky story-rail mini-TOC (desktop only) -->
+    <nav class="story-rail" aria-label="Story navigation">
+      <a href="#step-question" data-step="1" data-label="The question">①</a>
+      <a href="#step-problem"  data-step="2" data-label="The problem">②</a>
+      <a href="#step-unlock"   data-step="3" data-label="The unlock">③</a>
+      <a href="#step-reach"    data-step="4" data-label="The reach">④</a>
+      <a href="#step-wins"     data-step="5" data-label="The wins">⑤</a>
+    </nav>
+
+    <section class="hero">
+      <div class="hero-body">
+        <div class="container is-max-desktop">
+          <div class="columns is-centered">
+            <div class="column has-text-centered">
+              <!-- Hero title: colored method prefix + descriptive title -->
+              <h1 class="hero-titlerow">
+                <span class="title-method">StitchVM</span>: Stitched Value Model for Diffusion Alignment
+              </h1>
+              <p class="hero-subline">Preprint <span class="hero-sep">·</span> 2026</p>
+
+              <!-- Institutional logo separator strip -->
+              <div class="hero-logo-strip" role="group" aria-label="Research collaboration">
+                <div class="hero-logo-strip-row">
+                  <a class="logo-slot" href="https://ethz.ch" target="_blank" rel="noopener noreferrer" title="ETH Zürich">
+                    <img class="logo-eth" src="static/logos/eth.svg" alt="ETH Zürich">
+                    <span class="logo-num">1</span>
+                  </a>
+                  <a class="logo-slot" href="https://research.google" target="_blank" rel="noopener noreferrer" title="Google">
+                    <img class="logo-google" src="static/logos/google.svg" alt="Google">
+                    <span class="logo-num">2</span>
+                  </a>
+                  <a class="logo-slot" href="https://www.ku.dk/english" target="_blank" rel="noopener noreferrer" title="University of Copenhagen">
+                    <img class="logo-ucph" src="static/logos/ucph.svg" alt="University of Copenhagen">
+                    <span class="logo-num">3</span>
+                  </a>
+                </div>
+              </div>
+
+              <!-- Authors — natural wrapping, responsive sizing -->
+              <div class="publication-authors responsive">
+                <span class="author-block"><a href="https://gohyojun15.github.io/" rel="noopener noreferrer">Hyojun Go</a><sup>1</sup>,</span>
+                <span class="author-block"><a href="https://hj-chung.com/" rel="noopener noreferrer">Hyungjin Chung</a>,</span>
+                <span class="author-block"><a href="https://prunetruong.com/" rel="noopener noreferrer">Prune Truong</a><sup>2</sup>,</span>
+                <span class="author-block"><a href="https://goutamgmb.github.io/" rel="noopener noreferrer">Goutam Bhat</a><sup>2</sup>,</span>
+                <span class="author-block"><a href="https://limi44.github.io/" rel="noopener noreferrer">Li Mi</a><sup>1</sup>,</span>
+                <span class="author-block"><a href="https://chongzhou96.github.io/" rel="noopener noreferrer">Zhaochong An</a><sup>3</sup>,</span>
+                <span class="author-block"><a href="https://zixiangzhao.github.io/" rel="noopener noreferrer">Zixiang Zhao</a><sup>1</sup>,</span>
+                <span class="author-block"><a href="https://dominiknarnhofer.com/" rel="noopener noreferrer">Dominik Narnhofer</a><sup>1</sup>,</span>
+                <span class="author-block"><a href="https://sergebelongie.github.io/" rel="noopener noreferrer">Serge Belongie</a><sup>3</sup>,</span>
+                <span class="author-block"><a href="https://federicotombari.github.io/" rel="noopener noreferrer">Federico Tombari</a><sup>2</sup>,</span>
+                <span class="author-block"><a href="https://prs.igp.ethz.ch/group/people/person-detail.schindler.html" rel="noopener noreferrer">Konrad Schindler</a><sup>1</sup></span>
+              </div>
+
+              <!-- Text affiliations — readable key for the superscripts -->
+              <p class="text-affil-row">
+                <sup>1</sup>ETH Zürich<span class="affil-sep">·</span>
+                <sup>2</sup>Google<span class="affil-sep">·</span>
+                <sup>3</sup>University of Copenhagen
+              </p>
+
+              <!-- Buttons -->
+              <div class="column has-text-centered">
+                <div class="publication-links">
+                  <span class="link-block">
+                    <a
+                      href="#"
+                      rel="noopener noreferrer"
+                      class="external-link button is-normal is-rounded is-dark"
+                    >
+                      <span class="icon">
+                        <i class="fas fa-file-pdf" style="color: orangered"></i>
+                      </span>
+                      <span>Paper</span>
+                    </a>
+                  </span>
+                  <span class="link-block">
+                    <a
+                      href="#"
+                      rel="noopener noreferrer"
+                      class="external-link button is-normal is-rounded is-dark"
+                    >
+                      <span class="icon">
+                        <i class="ai ai-arxiv"></i>
+                      </span>
+                      <span>arXiv</span>
+                    </a>
+                  </span>
+                  <span class="link-block">
+                    <a
+                      href="#"
+                      rel="noopener noreferrer"
+                      class="external-link button is-normal is-rounded is-dark"
+                    >
+                      <span class="icon">
+                        <i class="fab fa-github"></i>
+                      </span>
+                      <span>Code (coming soon)</span>
+                    </a>
+                  </span>
+                  <span class="link-block">
+                    <a
+                      href="#BibTeX"
+                      class="external-link button is-normal is-rounded is-dark"
+                    >
+                      <span class="icon">
+                        <i class="fas fa-quote-left"></i>
+                      </span>
+                      <span>BibTeX</span>
+                    </a>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- TL;DR — viral hero unit (TL;DR + stats + comparison + plug-it-into) -->
+    <!-- ============================================================ -->
+    <section class="section tldr-section pt-5 pb-6">
+      <div class="container is-max-desktop">
+        <div class="columns is-centered has-text-centered">
+          <div class="column is-four-fifths">
+            <span class="tldr-badge">TL;DR</span>
+            <!-- ═══ Block 1 · CLAIM ═══════════════════════════════════════ -->
+            <h2 class="title is-3 tldr-title" style="margin-bottom: 0 !important;">
+              Make any
+              <span class="tldr-em-from">clean-image reward model</span>
+              work on
+              <span class="tldr-em-to">noisy diffusion latents</span>.
+            </h2>
+            <p class="tldr-claim-sub">
+              <strong>Same reward model</strong> &mdash; now scoring noisy diffusion latents directly,
+              at the quality you expect on clean images. The first practical recipe.
+            </p>
+          </div>
+        </div>
+
+        <!-- ═══ Block 2 · WHAT WE DO ═════════════════════════════════════ -->
+        <div class="columns is-centered has-text-centered">
+          <div class="column is-four-fifths">
+            <p class="tldr-block-eyebrow"><span class="eyebrow-num">②</span>What we do</p>
+            <!-- Shared SVG defs for x_0 / z_t thumbnails -->
+            <svg width="0" height="0" style="position: absolute;">
+              <defs>
+                <linearGradient id="cmp-sky" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#fed7aa" />
+                  <stop offset="55%" stop-color="#fb923c" />
+                  <stop offset="100%" stop-color="#7c2d12" />
+                </linearGradient>
+                <filter id="cmp-noise">
+                  <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" seed="7" />
+                  <feColorMatrix
+                    type="matrix"
+                    values="0.6 0 0 0 0.2  0 0.6 0 0 0.2  0 0 0.6 0 0.2  0 0 0 0.95 0"
+                  />
+                </filter>
+              </defs>
+            </svg>
+
+            <!-- Vertical teaser — same Reward model pill in both rows, with a
+                 StitchVM "stitching" arrow connecting the pill column straight down -->
+            <div class="teaser-figure">
+              <div class="teaser-grid">
+                <!-- EXISTING badge (above row 1, in pill column) -->
+                <span class="teaser-side-label teaser-side-label-existing grid-row-existing-badge">Existing</span>
+
+                <!-- ROW 1: clean image → Reward model → reward -->
+                <svg class="teaser-thumb grid-row1-thumb" viewBox="0 0 160 120" preserveAspectRatio="xMidYMid slice">
+                  <rect width="160" height="120" rx="6" fill="url(#cmp-sky)"/>
+                  <circle cx="112" cy="42" r="14" fill="#fef3c7" opacity="0.95"/>
+                  <path d="M0 82 L30 56 L60 72 L92 50 L130 66 L160 56 L160 120 L0 120 Z" fill="#1f2937" opacity="0.75"/>
+                  <rect x="0" y="96" width="160" height="24" fill="#1e3a8a" opacity="0.55"/>
+                  <rect x="102" y="96" width="20" height="24" fill="#fde68a" opacity="0.6"/>
+                </svg>
+                <span class="teaser-input-label grid-row1-label">clean image</span>
+                <span class="teaser-arrow grid-row1-arrow-in">→</span>
+                <span class="teaser-rm-pill grid-row1-pill">Reward model</span>
+                <span class="teaser-arrow grid-row1-arrow-out">→</span>
+                <span class="teaser-output grid-row1-output">reward</span>
+
+                <!-- TRANSITION: vertical StitchVM arrow connecting the two RM pills -->
+                <div class="teaser-transition grid-transition">
+                  <span class="teaser-transition-name">StitchVM</span>
+                  <svg class="teaser-transition-arrow" viewBox="0 0 22 40" preserveAspectRatio="xMidYMid meet">
+                    <defs>
+                      <linearGradient id="arrow-vgrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#818cf8"/>
+                        <stop offset="100%" stop-color="#4338ca"/>
+                      </linearGradient>
+                    </defs>
+                    <!-- dashed upper shaft — represents the "stitching" -->
+                    <line x1="11" y1="1.5" x2="11" y2="20" stroke="url(#arrow-vgrad)"
+                          stroke-width="3" stroke-dasharray="3 2.5" stroke-linecap="round"/>
+                    <!-- solid lower shaft -->
+                    <line x1="11" y1="20" x2="11" y2="30" stroke="#4338ca"
+                          stroke-width="3" stroke-linecap="round"/>
+                    <!-- arrowhead — bold filled triangle -->
+                    <path d="M 2 29 L 20 29 L 11 39 Z" fill="#4338ca"/>
+                  </svg>
+                  <span class="teaser-transition-cost">small compute</span>
+                </div>
+
+                <!-- OURS badge (above row 2, in pill column) -->
+                <span class="teaser-side-label teaser-side-label-ours grid-row-ours-badge">Ours</span>
+
+                <!-- ROW 2: noisy latent → SAME Reward model → reward -->
+                <svg class="teaser-thumb grid-row2-thumb" viewBox="0 0 160 120" preserveAspectRatio="xMidYMid slice">
+                  <g opacity="0.45">
+                    <rect width="160" height="120" rx="6" fill="url(#cmp-sky)"/>
+                    <circle cx="112" cy="42" r="14" fill="#fef3c7"/>
+                    <path d="M0 82 L30 56 L60 72 L92 50 L130 66 L160 56 L160 120 L0 120 Z" fill="#1f2937"/>
+                    <rect x="0" y="96" width="160" height="24" fill="#1e3a8a"/>
+                  </g>
+                  <rect width="160" height="120" rx="6" filter="url(#cmp-noise)" opacity="0.85"/>
+                </svg>
+                <span class="teaser-input-label grid-row2-label">noisy latent</span>
+                <span class="teaser-arrow grid-row2-arrow-in">→</span>
+                <span class="teaser-rm-pill grid-row2-pill">Reward model</span>
+                <span class="teaser-arrow grid-row2-arrow-out">→</span>
+                <span class="teaser-output grid-row2-output">reward</span>
+              </div>
+              <p class="teaser-caption">
+                <strong>StitchVM</strong> takes a pretrained pixel reward model and, at <span class="accent-cost">small compute cost</span>,
+                lets the <strong>same model</strong> score the noisy intermediate latents &mdash; not just the final clean image.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ Block 3 · THE IMPACT ═════════════════════════════════════ -->
+        <div class="columns is-centered">
+          <div class="column is-four-fifths">
+            <p class="tldr-block-eyebrow is-impact"><span class="eyebrow-num">③</span>The impact</p>
+            <div class="headline-stats">
+              <p class="stat-why-oneline">
+                <span class="stat-why-eyebrow-inline">One fix</span>
+                Replace <span class="stat-why-strike">the heavy effort to denoise a noisy latent to calculate a pixel reward</span>
+                <span class="stat-why-arrow">→</span>
+                with a <strong>direct StitchVM score</strong>.
+                The four wins that fall out <span class="stat-why-arrow stat-why-down">↓</span>
+              </p>
+
+              <div class="headline-stats-grid">
+                <div class="headline-stat">
+                  <p class="headline-stat-method">DPS</p>
+                  <p class="headline-stat-num">3.2&times; <span class="unit">faster</span></p>
+                  <p class="headline-stat-detail">↓50% peak GPU memory</p>
+                </div>
+                <div class="headline-stat">
+                  <p class="headline-stat-method">FK steering</p>
+                  <p class="headline-stat-num">33% <span class="unit">lower cost</span></p>
+                  <p class="headline-stat-detail">new $M$-scaling axis</p>
+                </div>
+                <div class="headline-stat">
+                  <p class="headline-stat-method">DRaFT</p>
+                  <p class="headline-stat-num">22&ndash;26% <span class="unit">GPU-h saved</span></p>
+                  <p class="headline-stat-detail">+ higher quality</p>
+                </div>
+                <div class="headline-stat">
+                  <p class="headline-stat-method">DiffusionNFT</p>
+                  <p class="headline-stat-num">55%+ <span class="unit">GPU-h saved</span></p>
+                  <p class="headline-stat-detail">same plateau, half the compute</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- ACT 1 — Why scoring noisy latents matters at all              -->
+    <!-- ============================================================ -->
+    <section class="hero is-small is-light">
+      <div class="hero-body">
+        <div class="container is-max-desktop">
+          <div class="columns is-centered has-text-centered">
+            <div class="column is-four-fifths">
+              <span class="act-label" id="step-question">① &nbsp;THE QUESTION</span>
+              <h2 class="title is-3 is-spaced" style="margin-bottom: 1rem;">
+                <span style="color: #485fc7; font-weight: 700; margin-right: 0.15em;">Q:</span>
+                Is this noisy latent on its way to a good reward?
+              </h2>
+              <p class="subtitle is-5" style="margin-bottom: 1.25rem;">
+                Most diffusion alignment methods come down to answering this question along the
+                denoising trajectory.
+              </p>
+
+              <!-- Shared SVG defs for concept thumbnails -->
+              <svg width="0" height="0" style="position: absolute;">
+                <defs>
+                  <linearGradient id="cn-warm" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#fed7aa" />
+                    <stop offset="55%" stop-color="#fb923c" />
+                    <stop offset="100%" stop-color="#7c2d12" />
+                  </linearGradient>
+                  <linearGradient id="cn-cool" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#bfdbfe" />
+                    <stop offset="55%" stop-color="#60a5fa" />
+                    <stop offset="100%" stop-color="#1e40af" />
+                  </linearGradient>
+                  <linearGradient id="cn-muted" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#e5e7eb" />
+                    <stop offset="100%" stop-color="#4b5563" />
+                  </linearGradient>
+                  <filter id="cn-noise">
+                    <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" seed="11" />
+                    <feColorMatrix type="matrix" values="0.6 0 0 0 0.2  0 0.6 0 0 0.2  0 0 0.6 0 0.2  0 0 0 0.95 0" />
+                  </filter>
+                  <!-- pure noise: full colorful turbulence, no underlying scene -->
+                  <filter id="cn-pure-noise">
+                    <feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="4" seed="13" stitchTiles="stitch"/>
+                    <feColorMatrix type="matrix" values="
+                      1.4 0.3 0.2 0 -0.15
+                      0.2 1.2 0.3 0 -0.15
+                      0.3 0.2 1.2 0 -0.15
+                      0   0   0   1 0" />
+                  </filter>
+                  <!-- heavy noise overlay: more dominant than cn-noise -->
+                  <filter id="cn-noise-heavy">
+                    <feTurbulence type="fractalNoise" baseFrequency="0.95" numOctaves="3" seed="17" stitchTiles="stitch"/>
+                    <feColorMatrix type="matrix" values="
+                      0.85 0.1 0.05 0 0
+                      0.05 0.85 0.1 0 0
+                      0.1 0.05 0.85 0 0
+                      0    0    0   0.96 0" />
+                  </filter>
+                </defs>
+              </svg>
+
+              <div class="concept-card" style="margin: 1.5rem 0;">
+                <div class="concept-svg-wrap" style="max-width: 620px;">
+                  <svg viewBox="0 0 620 200">
+                    <!-- z_t (noisy latent, highlighted) - the thing we glance at -->
+                    <g transform="translate(40, 35)">
+                      <rect width="110" height="86" rx="5" fill="url(#cn-warm)" />
+                      <circle cx="80" cy="28" r="11" fill="#fef3c7" />
+                      <path d="M0 58 L20 40 L42 52 L66 33 L92 46 L110 38 L110 86 L0 86 Z" fill="#1f2937" opacity="0.7"/>
+                      <rect x="0" y="68" width="110" height="18" fill="#1e3a8a" opacity="0.5"/>
+                      <rect width="110" height="86" rx="5" filter="url(#cn-pure-noise)" opacity="0.78"/>
+                      <rect width="110" height="86" rx="5" fill="none" stroke="#485fc7" stroke-width="2.5"/>
+                    </g>
+                    <text x="95" y="142" text-anchor="middle" font-family="Castoro, Times, serif" font-size="20" fill="#1e3a8a" font-weight="700">𝐳<tspan font-size="15" baseline-shift="sub">t</tspan></text>
+                    <text x="95" y="162" text-anchor="middle" font-size="12" fill="#1e3a8a">noisy latent</text>
+                    <text x="95" y="180" text-anchor="middle" font-size="11" fill="#6b7280" font-style="italic">we glance at this</text>
+
+                    <!-- arrow: denoising z_t -> z_0 -->
+                    <line x1="155" y1="78" x2="295" y2="78" stroke="#1f2937" stroke-width="2.5" stroke-dasharray="6 4"/>
+                    <polygon points="295,78 287,73 287,83" fill="#1f2937"/>
+                    <text x="225" y="68" text-anchor="middle" font-size="12" fill="#6b7280" font-style="italic">denoising</text>
+
+                    <!-- z_0 (clean final generation) -->
+                    <g transform="translate(300, 35)">
+                      <rect width="110" height="86" rx="5" fill="url(#cn-warm)" />
+                      <circle cx="80" cy="28" r="11" fill="#fef3c7" />
+                      <path d="M0 58 L20 40 L42 52 L66 33 L92 46 L110 38 L110 86 L0 86 Z" fill="#1f2937" opacity="0.7"/>
+                      <rect x="0" y="68" width="110" height="18" fill="#1e3a8a" opacity="0.5"/>
+                      <rect width="110" height="86" rx="5" fill="none" stroke="#9ca3af" stroke-width="1"/>
+                    </g>
+                    <text x="355" y="142" text-anchor="middle" font-family="Castoro, Times, serif" font-size="20" fill="#1f2937">𝐱<tspan font-size="15" baseline-shift="sub">0</tspan></text>
+                    <text x="355" y="162" text-anchor="middle" font-size="12" fill="#6b7280">final generation</text>
+                    <text x="355" y="180" text-anchor="middle" font-size="11" fill="#6b7280" font-style="italic">what it will become</text>
+
+                    <!-- "good reward" badge to the right of z_0 -->
+                    <line x1="415" y1="78" x2="445" y2="78" stroke="#10b981" stroke-width="2"/>
+                    <g transform="translate(450, 58)">
+                      <rect width="150" height="42" rx="21" fill="#d1fae5" stroke="#10b981" stroke-width="2"/>
+                      <circle cx="24" cy="21" r="12" fill="#10b981"/>
+                      <text x="24" y="26" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">✓</text>
+                      <text x="92" y="26" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="13" font-weight="700" fill="#065f46">good reward</text>
+                    </g>
+                    <text x="525" y="125" text-anchor="middle" font-size="11" fill="#6b7280" font-style="italic">how valuable will it be?</text>
+                  </svg>
+                </div>
+                <p class="concept-caption">
+                  Diffusion sampling will turn the noisy latent $\mathbf z_t$ into a final
+                  generation $\mathbf x_0$. Every alignment method has to answer this from a
+                  glance at $\mathbf z_t$ alone:
+                  <strong>how valuable will the final $\mathbf x_0$ be?</strong>
+                </p>
+              </div>
+
+              <div class="concept-card" style="margin: 1rem 0 1.25rem 0;">
+                <div class="content has-text-justified" style="margin-bottom: 0;">
+                  <p>
+                    Formally, this is the <strong>value function</strong>
+                    $V_t(\mathbf z_t)$ &mdash; the expected reward of the clean image
+                    $\mathbf z_t$ will eventually denoise to:
+                  </p>
+                  <p class="has-text-centered" style="font-size: 1.15rem; margin: 0.5rem 0 1rem 0;">
+                    $$V_t(\mathbf z_t) \;=\; \mathbb E\!\left[\,r(\mathbf z_0)\,\big|\,\mathbf z_t\right].$$
+                  </p>
+                  <p style="margin-bottom: 0;">
+                    Across both inference-time and training-time alignment,
+                    evaluating $V_t$ is the common need &mdash; three examples:
+                  </p>
+                </div>
+              </div>
+
+              <!-- Three formulation blocks: how each method category depends on V_t -->
+              <div class="why-blocks">
+
+                <!-- Inference: gradient guidance -->
+                <div class="why-block">
+                  <div class="why-block-header">
+                    Inference &mdash; gradient guidance
+                    <span class="why-block-examples">e.g. DPS, FreeDoM, MPGD</span>
+                  </div>
+                  <div class="why-block-form">
+                    <div class="why-block-form-math">
+                      $$u^{r}_t(\mathbf z_t) \;=\; u_t(\mathbf z_t) \;+\; c_t\,\nabla_{\mathbf z_t} V_t(\mathbf z_t).$$
+                    </div>
+                    <div class="why-block-form-desc">
+                      The current velocity $u_t$ at each step is nudged by the value gradient,
+                      giving a corrected velocity $u^r_t$ used for sampling.
+                    </div>
+                  </div>
+                  <p class="why-block-why">
+                    <span class="why-block-why-label">Why $V_t$?</span>
+                    Sampling from the reward-tilted target $p^\star$ is provably equivalent
+                    to running the pretrained sampler with this single drift correction
+                    by $\nabla_{\mathbf z_t} V_t$. Without that gradient, the sampler has no
+                    way to bias trajectories toward higher reward.
+                  </p>
+                </div>
+
+                <!-- Inference: particle sampling -->
+                <div class="why-block">
+                  <div class="why-block-header">
+                    Inference &mdash; particle sampling
+                    <span class="why-block-examples">e.g. FK steering, SVDD, SMC</span>
+                  </div>
+                  <div class="why-block-form">
+                    <div class="why-block-form-math">
+                      $$G(\mathbf z_{t_k}, \bar{\mathbf z}_{t_{k-1}}) \;=\; f\!\left(V_t(\bar{\mathbf z}_{t_{k-1}}),\; V_t(\mathbf z_{t_k})\right).$$
+                    </div>
+                    <div class="why-block-form-desc">
+                      At each step, each particle draws a proposal $\bar{\mathbf z}_{t_{k-1}}$
+                      and is reweighted by a potential $G$ &mdash; some function $f$ of $V_t$
+                      at the current and proposed states (specific methods choose different
+                      $f$). Particles are then resampled in proportion to $G$.
+                    </div>
+                  </div>
+                  <p class="why-block-why">
+                    <span class="why-block-why-label">Why $V_t$?</span>
+                    Whatever $f$ is, the resampling weight is built from $V_t$ evaluations.
+                    Without $V_t$, the resampling has no signal to prefer promising particles
+                    over the rest.
+                  </p>
+                </div>
+
+                <!-- Training: reward-based finetuning (covers both direct finetuning and RL post-training) -->
+                <div class="why-block">
+                  <div class="why-block-header">
+                    Training &mdash; reward-based finetuning
+                    <span class="why-block-examples">direct finetuning (DRaFT, AlignProp) &middot; RL post-training (DiffusionNFT, DDPO)</span>
+                  </div>
+                  <div class="why-block-form">
+                    <div class="why-block-form-math">
+                      $$\arg\max_{\theta}\; \mathbb E_{\mathbf z_0 \sim p_\theta}\!\left[r(\mathbf z_0)\right] \;-\; D_{\mathrm{KL}}(p_\theta \,\|\, p).$$
+                    </div>
+                    <div class="why-block-form-desc">
+                      The KL-regularized objective &mdash; its unique optimum is the
+                      reward-tilted distribution; both direct finetuning and RL post-training target it.
+                    </div>
+                  </div>
+                  <p class="why-block-why">
+                    <span class="why-block-why-label">Why $V_t$?</span>
+                    Either approach needs a reward signal at intermediate noisy $\mathbf z_t$:
+                    direct finetuning backpropagates through the trajectory, RL methods use
+                    the expected reward at $\mathbf z_t$. That expected reward is $V_t$.
+                    Existing work falls back to full Monte Carlo rollouts (denoise all the way to a
+                    clean image to evaluate $r$), which are slow and provide no signal at high-noise steps.
+                  </p>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- ACT 2 — Why the community settles for approximations         -->
+    <!-- ============================================================ -->
+    <section class="hero is-small is-light">
+      <div class="hero-body">
+        <div class="container is-max-desktop">
+          <div class="columns is-centered has-text-centered">
+            <div class="column is-four-fifths">
+              <span class="act-label" id="step-problem">② &nbsp;THE PROBLEM</span>
+              <h2 class="title is-3 is-spaced" style="margin-bottom: 1rem;">
+                Matching pixel reward quality on noisy latents has been impractical
+              </h2>
+              <p class="subtitle is-5" style="margin-bottom: 1.25rem;">
+                So methods approximate $V_t$ instead &mdash; each approximation with
+                cost and estimation problems.
+              </p>
+
+              <!-- Body card: why not just learn V_t directly? -->
+              <div class="concept-card" style="margin: 1rem 0 1.25rem 0;">
+                <div class="content has-text-justified" style="margin-bottom: 0;">
+                  <p>
+                    <strong>Why not just learn $V_t$ directly?</strong> It would be the
+                    cleanest fix &mdash; no bias, no variance, no extra evaluations
+                    &mdash; and would drop into every alignment method above. The
+                    community has sidelined this option not because it isn't desirable,
+                    but because <em>building such a model</em> has been hard.
+                  </p>
+                  <p>
+                    Matching the strength of a foundation-scale pixel reward model
+                    (CLIP, HPSv2, Aesthetic Predictor) on noisy latents requires roughly
+                    <em>their</em> training scale, and the result would have to be
+                    re-trained for every new diffusion backbone or reward. Smaller-scale
+                    or feature-reuse approaches trade away exactly the capability that
+                    made the pixel reward model worth using in the first place.
+                  </p>
+                  <p style="margin-bottom: 0;">
+                    So existing methods approximate $V_t$. Two workarounds dominate
+                    &mdash; each with its own price, shown below:
+                  </p>
+                </div>
+              </div>
+
+              <!-- Pipeline lineup figure: visual length carries the cost story -->
+              <div class="concept-card" style="margin: 1rem 0 1.25rem 0;">
+                <div class="concept-svg-wrap" style="max-width: 880px;">
+                  <svg viewBox="0 0 880 770">
+                    <defs>
+                      <linearGradient id="vt-grad" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#d1fae5" />
+                        <stop offset="100%" stop-color="#6ee7b7" />
+                      </linearGradient>
+                    </defs>
+
+                    <!-- ====================================================
+                         ROW 1 — TWEEDIE (tinted card)
+                         ==================================================== -->
+                    <rect x="0" y="0" width="880" height="248" rx="14"
+                          fill="#fef2f2" stroke="#fecaca" stroke-width="1.5"/>
+                    <!-- left accent bar -->
+                    <rect x="0" y="0" width="6" height="248" rx="2" fill="#dc2626"/>
+
+                    <!-- name + subtitle on same row (subtitle right-aligned) -->
+                    <text x="24" y="44" font-family="Google Sans, sans-serif"
+                          font-size="26" font-weight="700" fill="#7c2d12">
+                      Tweedie approximation
+                    </text>
+                    <text x="856" y="44" text-anchor="end" font-family="Google Sans, sans-serif"
+                          font-size="16" font-weight="500" fill="#7c2d12" font-style="italic" opacity="0.75">
+                      used in DPS &middot; FreeDoM &middot; MPGD &middot; FK steering &middot; &hellip;
+                    </text>
+
+                    <!-- Mechanism note: how Tweedie actually approximates V_t -->
+                    <foreignObject x="24" y="56" width="832" height="24">
+                      <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Google Sans', sans-serif; font-size: 15px; color: #7c2d12; line-height: 22px; white-space: nowrap;">
+                        <strong style="font-weight: 700;">Mechanism:</strong> approximate $\mathbb{E}[r(\mathbf{z}_0)\mid\mathbf{z}_t]$ by $r(\hat{\mathbf{z}}_0)$ with $\hat{\mathbf{z}}_0 = \mathbb{E}[\mathbf{z}_0\mid\mathbf{z}_t]$ from one denoiser call (Tweedie).
+                      </div>
+                    </foreignObject>
+
+                    <!-- compact pipeline strip (y center = 110) -->
+                    <g transform="translate(24, 84)">
+                      <rect width="60" height="52" rx="6" fill="url(#cn-warm)" />
+                      <circle cx="44" cy="17" r="7" fill="#fef3c7" />
+                      <path d="M0 34 L10 23 L23 30 L36 19 L50 26 L60 22 L60 52 L0 52 Z" fill="#1f2937" opacity="0.7"/>
+                      <rect width="60" height="52" rx="6" filter="url(#cn-pure-noise)" opacity="0.78"/>
+                      <rect width="60" height="52" rx="6" fill="none" stroke="#485fc7" stroke-width="2"/>
+                    </g>
+                    <text x="54" y="153" text-anchor="middle" font-family="Castoro, Times, serif" font-size="15" fill="#1e3a8a" font-weight="700">𝐳<tspan font-size="12" baseline-shift="sub">t</tspan></text>
+
+                    <line x1="88" y1="110" x2="116" y2="110" stroke="#1f2937" stroke-width="2"/>
+                    <polygon points="116,110 108,105 108,115" fill="#1f2937"/>
+
+                    <rect x="120" y="88" width="128" height="44" rx="8" fill="#ffffff" stroke="#7c3aed" stroke-width="1.8"/>
+                    <text x="184" y="115" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="15" font-weight="600" fill="#5b21b6">denoiser</text>
+
+                    <line x1="252" y1="110" x2="280" y2="110" stroke="#1f2937" stroke-width="2"/>
+                    <polygon points="280,110 272,105 272,115" fill="#1f2937"/>
+
+                    <rect x="284" y="88" width="92" height="44" rx="8" fill="#ffffff" stroke="#7c3aed" stroke-width="1.8"/>
+                    <text x="330" y="115" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="15" font-weight="600" fill="#5b21b6">VAE</text>
+
+                    <line x1="380" y1="110" x2="408" y2="110" stroke="#1f2937" stroke-width="2"/>
+                    <polygon points="408,110 400,105 400,115" fill="#1f2937"/>
+
+                    <rect x="412" y="88" width="156" height="44" rx="8" fill="#ffffff" stroke="#7c3aed" stroke-width="1.8"/>
+                    <text x="490" y="115" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="15" font-weight="600" fill="#5b21b6">reward model</text>
+
+                    <line x1="572" y1="110" x2="600" y2="110" stroke="#1f2937" stroke-width="2"/>
+                    <polygon points="600,110 592,105 592,115" fill="#1f2937"/>
+
+                    <g transform="translate(604, 88)">
+                      <rect width="56" height="44" rx="22" fill="#ffffff" stroke="#dc2626" stroke-width="2"/>
+                      <text x="28" y="30" text-anchor="middle" font-family="Castoro, Times, serif" font-size="24" fill="#991b1b" font-style="italic" font-weight="700">r̂</text>
+                    </g>
+
+                    <!-- COST line + formula on right -->
+                    <g transform="translate(24, 158)">
+                      <rect width="76" height="26" rx="13" fill="#374151"/>
+                      <text x="38" y="18" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="12" font-weight="700" fill="#ffffff" letter-spacing="0.12em">COST</text>
+                    </g>
+                    <text x="108" y="177" font-family="Google Sans, sans-serif" font-size="18" font-weight="600" fill="#1f2937">
+                      denoiser + VAE + reward per call
+                    </text>
+                    <foreignObject x="470" y="158" width="392" height="34">
+                      <div xmlns="http://www.w3.org/1999/xhtml" style="font-size: 19px; color: #7c2d12; text-align: right; line-height: 34px; opacity: 0.92;">
+                        $V_t(\mathbf{z}_t) \approx r(\mathbb{E}[\mathbf{z}_0 \mid \mathbf{z}_t])$
+                      </div>
+                    </foreignObject>
+
+                    <!-- ISSUE strip — the punchline (red contrast band) -->
+                    <rect x="12" y="198" width="856" height="42" rx="8" fill="#dc2626"/>
+                    <text x="32" y="228" font-family="Google Sans, sans-serif" font-size="18" font-weight="900" fill="#ffffff" letter-spacing="0.16em">⚠ ISSUE</text>
+                    <text x="500" y="228" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="21" font-weight="700" fill="#ffffff">
+                      Jensen-gap bias &mdash; worst exactly when noise is highest
+                    </text>
+
+                    <!-- ====================================================
+                         ROW 2 — MONTE CARLO (tinted card)
+                         block: y=260 to 540
+                         ==================================================== -->
+                    <rect x="0" y="260" width="880" height="270" rx="14"
+                          fill="#fff7ed" stroke="#fed7aa" stroke-width="1.5"/>
+                    <rect x="0" y="260" width="6" height="270" rx="2" fill="#ea580c"/>
+
+                    <text x="24" y="296" font-family="Google Sans, sans-serif"
+                          font-size="26" font-weight="700" fill="#7c2d12">
+                      Monte Carlo rollouts
+                    </text>
+                    <text x="856" y="296" text-anchor="end" font-family="Google Sans, sans-serif"
+                          font-size="16" font-weight="500" fill="#7c2d12" font-style="italic" opacity="0.75">
+                      used in DDS &middot; sequential Monte Carlo &middot; RL post-training &middot; &hellip;
+                    </text>
+
+                    <!-- Mechanism note: how MC estimates V_t -->
+                    <foreignObject x="24" y="302" width="832" height="24">
+                      <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Google Sans', sans-serif; font-size: 15px; color: #7c2d12; line-height: 22px; white-space: nowrap;">
+                        <strong style="font-weight: 700;">Mechanism:</strong> draw $N$ samples $\mathbf{z}_{0,i} \sim p(\mathbf{z}_0\mid\mathbf{z}_t)$ via full rollouts, average $r(\mathbf{z}_{0,i})$. Unbiased, but variance $\propto 1/N$.
+                      </div>
+                    </foreignObject>
+
+                    <!-- z_t thumb (center y = 370) -->
+                    <g transform="translate(24, 344)">
+                      <rect width="60" height="52" rx="6" fill="url(#cn-warm)" />
+                      <circle cx="44" cy="17" r="7" fill="#fef3c7" />
+                      <path d="M0 34 L10 23 L23 30 L36 19 L50 26 L60 22 L60 52 L0 52 Z" fill="#1f2937" opacity="0.7"/>
+                      <rect width="60" height="52" rx="6" filter="url(#cn-pure-noise)" opacity="0.78"/>
+                      <rect width="60" height="52" rx="6" fill="none" stroke="#485fc7" stroke-width="2"/>
+                    </g>
+                    <text x="54" y="413" text-anchor="middle" font-family="Castoro, Times, serif" font-size="15" fill="#1e3a8a" font-weight="700">𝐳<tspan font-size="12" baseline-shift="sub">t</tspan></text>
+
+                    <!-- branching -->
+                    <line x1="84" y1="370" x2="132" y2="338" stroke="#1f2937" stroke-width="1.4"/>
+                    <line x1="84" y1="370" x2="132" y2="370" stroke="#1f2937" stroke-width="1.4"/>
+                    <line x1="84" y1="370" x2="132" y2="402" stroke="#1f2937" stroke-width="1.4"/>
+                    <polygon points="136,338 127,333 127,343" fill="#1f2937"/>
+                    <polygon points="136,370 127,365 127,375" fill="#1f2937"/>
+                    <polygon points="136,402 127,397 127,407" fill="#1f2937"/>
+
+                    <!-- "× N rollouts" label removed — the mechanism note above already explains "draw N samples" -->
+
+                    <rect x="138" y="328" width="140" height="22" rx="5" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.4"/>
+                    <text x="208" y="344" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="13" font-weight="600" fill="#5b21b6">denoise × T steps</text>
+                    <rect x="138" y="359" width="140" height="22" rx="5" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.4"/>
+                    <text x="208" y="375" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="13" font-weight="600" fill="#5b21b6">denoise × T steps</text>
+                    <rect x="138" y="390" width="140" height="22" rx="5" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.4"/>
+                    <text x="208" y="406" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="13" font-weight="600" fill="#5b21b6">denoise × T steps</text>
+
+                    <line x1="278" y1="339" x2="328" y2="366" stroke="#1f2937" stroke-width="1.4"/>
+                    <line x1="278" y1="370" x2="328" y2="370" stroke="#1f2937" stroke-width="1.4"/>
+                    <line x1="278" y1="401" x2="328" y2="374" stroke="#1f2937" stroke-width="1.4"/>
+                    <polygon points="332,370 320,363 320,377" fill="#1f2937"/>
+
+                    <rect x="334" y="348" width="80" height="44" rx="8" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.8"/>
+                    <text x="374" y="375" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="15" font-weight="600" fill="#5b21b6">VAE</text>
+                    <text x="374" y="408" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="12" font-style="italic" font-weight="700" fill="#7c2d12">× N</text>
+
+                    <line x1="418" y1="370" x2="446" y2="370" stroke="#1f2937" stroke-width="2"/>
+                    <polygon points="446,370 438,365 438,375" fill="#1f2937"/>
+
+                    <rect x="450" y="348" width="124" height="44" rx="8" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.8"/>
+                    <text x="512" y="375" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="15" font-weight="600" fill="#5b21b6">reward model</text>
+                    <text x="512" y="408" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="12" font-style="italic" font-weight="700" fill="#7c2d12">× N</text>
+
+                    <line x1="578" y1="370" x2="606" y2="370" stroke="#1f2937" stroke-width="2"/>
+                    <polygon points="606,370 598,365 598,375" fill="#1f2937"/>
+
+                    <rect x="610" y="348" width="84" height="44" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="1.8"/>
+                    <text x="652" y="375" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="15" font-weight="600" fill="#92400e">average</text>
+
+                    <line x1="698" y1="370" x2="722" y2="370" stroke="#1f2937" stroke-width="2"/>
+                    <polygon points="722,370 714,365 714,375" fill="#1f2937"/>
+
+                    <g transform="translate(726, 348)">
+                      <rect width="56" height="44" rx="22" fill="#ffffff" stroke="#dc2626" stroke-width="2"/>
+                      <text x="28" y="30" text-anchor="middle" font-family="Castoro, Times, serif" font-size="24" fill="#991b1b" font-style="italic" font-weight="700">r̄</text>
+                    </g>
+
+                    <!-- COST line + formula on right -->
+                    <g transform="translate(24, 438)">
+                      <rect width="76" height="26" rx="13" fill="#374151"/>
+                      <text x="38" y="18" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="12" font-weight="700" fill="#ffffff" letter-spacing="0.12em">COST</text>
+                    </g>
+                    <text x="108" y="457" font-family="Google Sans, sans-serif" font-size="18" font-weight="600" fill="#1f2937">
+                      <tspan font-family="Castoro, Times, serif" font-style="italic" font-weight="700">N</tspan> full denoising rollouts per call
+                    </text>
+                    <foreignObject x="340" y="436" width="520" height="38">
+                      <div xmlns="http://www.w3.org/1999/xhtml" style="font-size: 17px; color: #7c2d12; text-align: right; line-height: 38px; opacity: 0.92;">
+                        $V_t(\mathbf{z}_t) \approx \tfrac{1}{N}\sum_{i=1}^{N} r(\mathbf{z}_{0,i}),\ \ \mathbf{z}_{0,i} \sim p(\mathbf{z}_0 \mid \mathbf{z}_t)$
+                      </div>
+                    </foreignObject>
+
+                    <!-- ISSUE strip — the punchline -->
+                    <rect x="12" y="478" width="856" height="42" rx="8" fill="#dc2626"/>
+                    <text x="32" y="508" font-family="Google Sans, sans-serif" font-size="18" font-weight="900" fill="#ffffff" letter-spacing="0.16em">⚠ ISSUE</text>
+                    <text x="500" y="508" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="21" font-weight="700" fill="#ffffff">
+                      high variance &mdash; large <tspan font-family="Castoro, Times, serif" font-style="italic" font-weight="700">N</tspan> is computationally untenable
+                    </text>
+
+                    <!-- ====================================================
+                         ROW 3 — DIRECT LEARNING (highlighted ideal card)
+                         ==================================================== -->
+                    <rect x="0" y="540" width="880" height="220" rx="14"
+                          fill="#ecfdf5" stroke="#10b981" stroke-width="2"/>
+                    <rect x="0" y="540" width="6" height="220" rx="2" fill="#10b981"/>
+
+                    <!-- ADVANTAGE strip — the green punchline (mirrors red ISSUE strips) -->
+                    <rect x="12" y="708" width="856" height="42" rx="8" fill="#10b981"/>
+                    <text x="32" y="738" font-family="Google Sans, sans-serif" font-size="18" font-weight="900" fill="#ffffff" letter-spacing="0.16em">✓ ADVANTAGE</text>
+                    <text x="560" y="738" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="21" font-weight="700" fill="#ffffff">
+                      no bias, no variance, no decoder &mdash; what <tspan font-weight="900">StitchVM</tspan> unlocks
+                    </text>
+
+                    <text x="24" y="578" font-family="Google Sans, sans-serif"
+                          font-size="26" font-weight="700" fill="#065f46">
+                      Direct learning of <tspan font-family="Castoro, Times, serif" font-style="italic" font-weight="700">V<tspan font-size="20" baseline-shift="sub">t</tspan></tspan>
+                    </text>
+                    <g transform="translate(686, 556)">
+                      <rect width="170" height="28" rx="14" fill="#10b981"/>
+                      <text x="85" y="20" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="13" font-weight="700" fill="#ffffff" letter-spacing="0.12em">THE IDEAL TARGET</text>
+                    </g>
+
+                    <!-- Mechanism note: how direct learning works (focused on the HOW; the WHAT-YOU-GET is in the inline payoff and the ADVANTAGE strip below) -->
+                    <foreignObject x="24" y="586" width="832" height="24">
+                      <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Google Sans', sans-serif; font-size: 15px; color: #065f46; line-height: 22px; white-space: nowrap;">
+                        <strong style="font-weight: 700;">Mechanism:</strong> train a model $V_t$ <em>directly</em> on noisy latents to predict the true expected reward $\mathbb{E}[r(\mathbf{z}_0)\mid\mathbf{z}_t]$.
+                      </div>
+                    </foreignObject>
+
+                    <!-- z_t thumb (shifted down 8px to clear larger Mechanism note above) -->
+                    <g transform="translate(24, 616)">
+                      <rect width="60" height="52" rx="6" fill="url(#cn-warm)" />
+                      <circle cx="44" cy="17" r="7" fill="#fef3c7" />
+                      <path d="M0 34 L10 23 L23 30 L36 19 L50 26 L60 22 L60 52 L0 52 Z" fill="#1f2937" opacity="0.7"/>
+                      <rect width="60" height="52" rx="6" filter="url(#cn-pure-noise)" opacity="0.78"/>
+                      <rect width="60" height="52" rx="6" fill="none" stroke="#485fc7" stroke-width="2"/>
+                    </g>
+
+                    <line x1="88" y1="642" x2="116" y2="642" stroke="#1f2937" stroke-width="2.4"/>
+                    <polygon points="116,642 108,637 108,647" fill="#1f2937"/>
+
+                    <rect x="120" y="614" width="200" height="58" rx="12"
+                          fill="url(#vt-grad)" stroke="#10b981" stroke-width="2.6"/>
+                    <text x="220" y="640" text-anchor="middle"
+                          font-family="Castoro, Times, serif" font-size="26"
+                          fill="#064e3b" font-weight="700" font-style="italic">
+                      V<tspan font-size="18" baseline-shift="sub">t</tspan>
+                    </text>
+                    <text x="220" y="660" text-anchor="middle"
+                          font-family="Google Sans, sans-serif" font-size="13"
+                          fill="#065f46" font-style="italic" font-weight="600">learned directly</text>
+
+                    <line x1="324" y1="642" x2="352" y2="642" stroke="#1f2937" stroke-width="2.4"/>
+                    <polygon points="352,642 344,637 344,647" fill="#1f2937"/>
+
+                    <g transform="translate(356, 618)">
+                      <rect width="60" height="48" rx="24" fill="#ffffff" stroke="#10b981" stroke-width="2"/>
+                      <text x="30" y="32" text-anchor="middle" font-family="Castoro, Times, serif" font-size="24" fill="#064e3b" font-style="italic" font-weight="700">r̂</text>
+                    </g>
+
+                    <!-- inline payoff text (compact, since strip below) -->
+                    <text x="524" y="638" font-family="Google Sans, sans-serif"
+                          font-size="22" font-weight="700" fill="#065f46">
+                      one forward pass.
+                    </text>
+                    <text x="524" y="664" font-family="Google Sans, sans-serif"
+                          font-size="14" fill="#047857" font-style="italic">
+                      no decoder. no rollouts.
+                    </text>
+                  </svg>
+                </div>
+                <p class="concept-caption act2-punchline">
+                  The community has long settled for the red rows above &mdash;
+                  not because they are good, but because building a noisy-latent $V_t$
+                  at pixel-reward quality has meant training from scratch at foundation scale,
+                  re-done for every new backbone or reward.
+                  <strong class="act2-punchline-hit">StitchVM avoids that: it <em>transfers</em>, instead of retraining.</strong>
+                </p>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- ACT 3 — We did it                                           -->
+    <!-- ============================================================ -->
+    <section class="hero is-small is-light">
+      <div class="hero-body">
+        <div class="container is-max-desktop">
+          <div class="columns is-centered has-text-centered">
+            <div class="column is-four-fifths">
+              <span class="act-label" id="step-unlock">③ &nbsp;THE UNLOCK</span>
+              <h2 class="title is-2 is-spaced" style="margin-bottom: 0.85rem; line-height: 1.18;">
+                🧵 Pixel-reward quality.<br/>
+                <span style="color: #1e3a8a;">On noisy latents.</span><br/>
+                <span style="color: #10b981;">Via model stitching.</span>
+              </h2>
+              <p class="subtitle is-5" style="margin: 0 auto 1.25rem auto; max-width: 820px;">
+                At the cost of a <strong>short finetune</strong> &mdash;
+                <em>not</em> retraining anything from scratch.
+              </p>
+
+              <!-- Methodology paragraph: short "why this works" -->
+              <p class="act3-howitworks">
+                <strong>Why this works:</strong>
+                at the right depth, the internal features of a pretrained diffusion model
+                are <strong>almost linearly compatible</strong> with those of a pretrained
+                pixel reward model. So we keep the <strong>head</strong> of the diffusion
+                model frozen (already native to noisy latents), keep the
+                <strong>tail</strong> of the reward model (it already produces the score),
+                and join them with a small <strong>stitching layer</strong> &mdash;
+                initialised by a closed-form linear fit, then briefly finetuned together
+                with the reward tail on unlabeled images. The stitched model inherits the
+                reward model's predictive skill, but now operates directly on noisy latents.
+              </p>
+
+              <!-- Conceptual stitching figure -->
+              <div class="concept-card" style="margin: 0 0 1.5rem 0;">
+                <div class="concept-svg-wrap" style="max-width: 920px;">
+                  <svg viewBox="0 0 920 460">
+                    <defs>
+                      <linearGradient id="diff-color" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stop-color="#dbeafe"/>
+                        <stop offset="100%" stop-color="#93c5fd"/>
+                      </linearGradient>
+                      <linearGradient id="reward-color" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stop-color="#ede9fe"/>
+                        <stop offset="100%" stop-color="#c4b5fd"/>
+                      </linearGradient>
+                      <linearGradient id="stitch-color" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#a7f3d0"/>
+                        <stop offset="100%" stop-color="#10b981"/>
+                      </linearGradient>
+                    </defs>
+
+                    <!-- =================================================
+                         COL 1: DIFFUSION BACKBONE
+                         ================================================= -->
+                    <text x="140" y="32" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="11" font-weight="700" fill="#3b82f6" letter-spacing="0.18em">PRETRAINED</text>
+                    <text x="140" y="60" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="20" font-weight="700" fill="#1e3a8a">Diffusion backbone</text>
+
+                    <!-- input -->
+                    <text x="140" y="92" text-anchor="middle" font-family="Castoro, Times, serif" font-size="14" fill="#1e3a8a" font-style="italic">𝐳<tspan font-size="11" baseline-shift="sub">t</tspan> &nbsp;(noisy latent)</text>
+                    <line x1="140" y1="100" x2="140" y2="118" stroke="#1f2937" stroke-width="1.6"/>
+                    <polygon points="140,118 134,112 146,112" fill="#1f2937"/>
+
+                    <!-- kept layers (head) -->
+                    <rect x="40" y="120" width="200" height="32" rx="5" fill="url(#diff-color)" stroke="#3b82f6" stroke-width="1.5"/>
+                    <text x="140" y="140" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="13" font-weight="600" fill="#1e3a8a">layer 1</text>
+                    <rect x="40" y="156" width="200" height="32" rx="5" fill="url(#diff-color)" stroke="#3b82f6" stroke-width="1.5"/>
+                    <text x="140" y="176" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="13" font-weight="600" fill="#1e3a8a">&hellip;</text>
+                    <rect x="40" y="192" width="200" height="32" rx="5" fill="url(#diff-color)" stroke="#3b82f6" stroke-width="1.5"/>
+                    <text x="140" y="212" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="13" font-weight="600" fill="#1e3a8a">layer <tspan font-family="Castoro, Times, serif" font-style="italic">i</tspan><tspan font-size="11" baseline-shift="super">★</tspan></text>
+
+                    <!-- cut line -->
+                    <line x1="30" y1="234" x2="250" y2="234" stroke="#dc2626" stroke-width="1.6" stroke-dasharray="6 4"/>
+                    <text x="140" y="250" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="10" font-weight="700" fill="#dc2626" letter-spacing="0.12em">✂ CUT</text>
+
+                    <!-- dropped layers (tail) -->
+                    <rect x="40" y="256" width="200" height="28" rx="5" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1" stroke-dasharray="4 3" opacity="0.55"/>
+                    <text x="140" y="274" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="12" font-weight="500" fill="#9ca3af" font-style="italic">&hellip;</text>
+                    <rect x="40" y="288" width="200" height="28" rx="5" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1" stroke-dasharray="4 3" opacity="0.55"/>
+                    <text x="140" y="306" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="12" font-weight="500" fill="#9ca3af" font-style="italic">layer N (drop)</text>
+
+                    <!-- reuse pill -->
+                    <g transform="translate(28, 340)">
+                      <rect width="224" height="30" rx="15" fill="#3b82f6"/>
+                      <text x="112" y="20" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="12" font-weight="700" fill="#ffffff" letter-spacing="0.1em">KEEP THE HEAD</text>
+                    </g>
+
+                    <!-- =================================================
+                         COL 2: PIXEL REWARD MODEL
+                         ================================================= -->
+                    <text x="460" y="32" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="11" font-weight="700" fill="#7c3aed" letter-spacing="0.18em">PRETRAINED</text>
+                    <text x="460" y="60" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="20" font-weight="700" fill="#5b21b6">Pixel reward model</text>
+
+                    <text x="460" y="92" text-anchor="middle" font-family="Castoro, Times, serif" font-size="14" fill="#5b21b6" font-style="italic">𝐱<tspan font-size="11" baseline-shift="sub">0</tspan> &nbsp;(clean image)</text>
+                    <line x1="460" y1="100" x2="460" y2="118" stroke="#1f2937" stroke-width="1.6"/>
+                    <polygon points="460,118 454,112 466,112" fill="#1f2937"/>
+
+                    <!-- dropped layers (head) -->
+                    <rect x="360" y="120" width="200" height="28" rx="5" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1" stroke-dasharray="4 3" opacity="0.55"/>
+                    <text x="460" y="138" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="12" font-weight="500" fill="#9ca3af" font-style="italic">layer 1 (drop)</text>
+                    <rect x="360" y="152" width="200" height="28" rx="5" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1" stroke-dasharray="4 3" opacity="0.55"/>
+                    <text x="460" y="170" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="12" font-weight="500" fill="#9ca3af" font-style="italic">&hellip;</text>
+
+                    <!-- cut line -->
+                    <line x1="350" y1="194" x2="570" y2="194" stroke="#dc2626" stroke-width="1.6" stroke-dasharray="6 4"/>
+                    <text x="460" y="210" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="10" font-weight="700" fill="#dc2626" letter-spacing="0.12em">✂ CUT</text>
+
+                    <!-- kept layers (tail) -->
+                    <rect x="360" y="216" width="200" height="32" rx="5" fill="url(#reward-color)" stroke="#7c3aed" stroke-width="1.5"/>
+                    <text x="460" y="236" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="13" font-weight="600" fill="#5b21b6">layer <tspan font-family="Castoro, Times, serif" font-style="italic">j</tspan><tspan font-size="11" baseline-shift="super">★</tspan></text>
+                    <rect x="360" y="252" width="200" height="32" rx="5" fill="url(#reward-color)" stroke="#7c3aed" stroke-width="1.5"/>
+                    <text x="460" y="272" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="13" font-weight="600" fill="#5b21b6">&hellip;</text>
+                    <rect x="360" y="288" width="200" height="32" rx="5" fill="url(#reward-color)" stroke="#7c3aed" stroke-width="1.5"/>
+                    <text x="460" y="308" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="13" font-weight="600" fill="#5b21b6">layer M (reward)</text>
+
+                    <!-- reuse pill -->
+                    <g transform="translate(348, 340)">
+                      <rect width="224" height="30" rx="15" fill="#7c3aed"/>
+                      <text x="112" y="20" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="12" font-weight="700" fill="#ffffff" letter-spacing="0.1em">KEEP THE TAIL</text>
+                    </g>
+
+                    <!-- =================================================
+                         + ARROWS POINTING TO COL 3 (STITCHED RESULT)
+                         ================================================= -->
+                    <!-- diff head → stitchVM top: curved arrow -->
+                    <path d="M 244 180 Q 480 180 660 180" stroke="#3b82f6" stroke-width="2" fill="none" stroke-dasharray="5 4" opacity="0.7"/>
+                    <polygon points="660,180 651,175 651,185" fill="#3b82f6" opacity="0.9"/>
+                    <!-- reward tail → stitchVM bottom: curved arrow -->
+                    <path d="M 564 270 Q 620 290 660 290" stroke="#7c3aed" stroke-width="2" fill="none" stroke-dasharray="5 4" opacity="0.7"/>
+                    <polygon points="660,290 651,285 651,295" fill="#7c3aed" opacity="0.9"/>
+
+                    <!-- =================================================
+                         COL 3: STITCHVM (RESULT)
+                         ================================================= -->
+                    <text x="780" y="32" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="11" font-weight="700" fill="#10b981" letter-spacing="0.18em">STITCHED</text>
+                    <text x="780" y="60" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="22" font-weight="700" fill="#065f46">🧵 StitchVM</text>
+
+                    <text x="780" y="92" text-anchor="middle" font-family="Castoro, Times, serif" font-size="14" fill="#1e3a8a" font-style="italic">𝐳<tspan font-size="11" baseline-shift="sub">t</tspan> &nbsp;(noisy latent)</text>
+                    <line x1="780" y1="100" x2="780" y2="118" stroke="#1f2937" stroke-width="1.6"/>
+                    <polygon points="780,118 774,112 786,112" fill="#1f2937"/>
+
+                    <!-- diff head — kept FROZEN -->
+                    <rect x="680" y="120" width="200" height="32" rx="5" fill="url(#diff-color)" stroke="#3b82f6" stroke-width="1.5"/>
+                    <text x="780" y="140" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="13" font-weight="600" fill="#1e3a8a">diff layer 1</text>
+                    <rect x="680" y="156" width="200" height="32" rx="5" fill="url(#diff-color)" stroke="#3b82f6" stroke-width="1.5"/>
+                    <text x="780" y="176" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="13" font-weight="600" fill="#1e3a8a">&hellip;</text>
+                    <rect x="680" y="192" width="200" height="32" rx="5" fill="url(#diff-color)" stroke="#3b82f6" stroke-width="1.5"/>
+                    <text x="780" y="212" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="13" font-weight="600" fill="#1e3a8a">diff layer <tspan font-family="Castoro, Times, serif" font-style="italic">i</tspan><tspan font-size="11" baseline-shift="super">★</tspan></text>
+
+
+                    <!-- STITCH layer — the only new piece -->
+                    <rect x="666" y="232" width="228" height="38" rx="10" fill="url(#stitch-color)" stroke="#10b981" stroke-width="2.4"/>
+                    <text x="780" y="256" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="14" font-weight="700" fill="#065f46">⇄ stitching layer</text>
+
+                    <!-- reward tail -->
+                    <rect x="680" y="280" width="200" height="32" rx="5" fill="url(#reward-color)" stroke="#7c3aed" stroke-width="1.5"/>
+                    <text x="780" y="300" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="13" font-weight="600" fill="#5b21b6">reward layer <tspan font-family="Castoro, Times, serif" font-style="italic">j</tspan><tspan font-size="11" baseline-shift="super">★</tspan></text>
+                    <rect x="680" y="316" width="200" height="28" rx="5" fill="url(#reward-color)" stroke="#7c3aed" stroke-width="1.5"/>
+                    <text x="780" y="334" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="12" font-weight="600" fill="#5b21b6">&hellip;</text>
+
+                    <!-- output: r̂ -->
+                    <line x1="780" y1="346" x2="780" y2="364" stroke="#1f2937" stroke-width="1.8"/>
+                    <polygon points="780,364 774,358 786,358" fill="#1f2937"/>
+                    <g transform="translate(706, 368)">
+                      <rect width="148" height="36" rx="18" fill="#d1fae5" stroke="#10b981" stroke-width="2"/>
+                      <text x="40" y="26" text-anchor="middle" font-family="Castoro, Times, serif" font-size="20" fill="#064e3b" font-style="italic" font-weight="700">r̂</text>
+                      <text x="98" y="25" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="11" font-weight="700" fill="#065f46">noisy-latent V<tspan font-size="9" baseline-shift="sub">t</tspan></text>
+                    </g>
+
+                    <!-- BIG payoff pill -->
+                    <g transform="translate(668, 416)">
+                      <rect width="224" height="30" rx="15" fill="#10b981"/>
+                      <text x="112" y="20" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="12" font-weight="700" fill="#ffffff" letter-spacing="0.1em">ONE FORWARD PASS</text>
+                    </g>
+
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Punchline: matches Act 2 callback -->
+              <p class="act3-punchline">
+                The result is a noisy-latent value model at <strong>pixel-reward quality</strong>,
+                built in hours on a single GPU &mdash;
+                <strong class="act3-punchline-hit">no training from scratch, just a transfer.</strong>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- WHY IT MATTERS — applicability argument across the toolkit  -->
+    <!-- ============================================================ -->
+    <section class="section pt-6 pb-6">
+      <div class="container is-max-desktop">
+        <div class="columns is-centered has-text-centered">
+          <div class="column is-four-fifths">
+            <p id="step-reach" class="has-text-centered" style="font-family: 'Google Sans', sans-serif; letter-spacing: 0.18em; color: #10b981; font-size: 0.78rem; font-weight: 700; margin-bottom: 0.4rem;">
+              ④ &nbsp;THE REACH &nbsp;&middot;&nbsp; WHY IT MATTERS
+            </p>
+            <h2 class="title is-2 is-spaced" style="margin-bottom: 0.85rem; line-height: 1.18;">
+              One $V_t$.
+              <span style="color: #1e3a8a;">Every alignment recipe.</span>
+            </h2>
+            <p class="subtitle is-5" style="margin: 0 auto 1.5rem auto; max-width: 820px;">
+              Build $V_t$ <strong>once</strong>. Drop it into <em>every</em> alignment recipe &mdash;
+              inference-time guidance, particle sampling, training-time finetuning &mdash;
+              and watch each one get cheaper at the same time.
+            </p>
+
+            <!-- INFERENCE-TIME section -->
+            <div class="reach-section">
+              <p class="reach-section-label reach-inference-label">INFERENCE-TIME ALIGNMENT</p>
+              <h3 class="reach-section-title">Cheaper. Sharper. Less biased.</h3>
+
+              <div class="reach-grid">
+                <!-- Gradient guidance -->
+                <div class="reach-card reach-inference">
+                  <h4 class="reach-item-title">
+                    DPS
+                    <span class="reach-item-examples">gradient guidance</span>
+                  </h4>
+
+                  <div class="reach-fig-wrap">
+                    <svg viewBox="0 0 440 410" xmlns="http://www.w3.org/2000/svg">
+                      <!-- ============================================================
+                           HEADER — what DPS is and what we need
+                           ============================================================ -->
+                      <foreignObject x="14" y="2" width="412" height="18">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Google Sans', sans-serif; font-size: 11px; font-weight: 700; color: #1f2937; text-align: center; line-height: 18px;">
+                          DPS steers denoising along $\nabla V_t$ &mdash; the gradient is the guidance signal
+                        </div>
+                      </foreignObject>
+                      <foreignObject x="20" y="22" width="400" height="22">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="font-size: 13px; color: #5b21b6; text-align: center; line-height: 22px;">
+                          $u^{r}_t(\mathbf{z}_t) \;=\; u_t(\mathbf{z}_t) \;+\; c\,\nabla V_t(\mathbf{z}_t)$
+                        </div>
+                      </foreignObject>
+                      <text x="220" y="56" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="9.5" fill="#6b7280" font-style="italic">quality &amp; speed of <tspan font-family="Castoro, Times, serif">∇V<tspan font-size="7" baseline-shift="sub">t</tspan></tspan> matter &mdash; computed at every denoising step</text>
+
+                      <!-- divider -->
+                      <line x1="20" y1="66" x2="420" y2="66" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="3 3"/>
+
+                      <!-- ============================================================
+                           STANDARD (TWEEDIE) panel — y=72 to 226
+                           ============================================================ -->
+                      <text x="6" y="86" font-family="Google Sans, sans-serif" font-size="9" font-weight="700" fill="#9ca3af" letter-spacing="0.14em">STANDARD (TWEEDIE)</text>
+                      <!-- Red cost pill -->
+                      <rect x="222" y="76" width="214" height="18" rx="9" fill="#fee2e2" stroke="#dc2626" stroke-width="1.4"/>
+                      <text x="329" y="88" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="9.5" font-weight="700" fill="#991b1b" letter-spacing="0.04em">long backprop · biased gradient</text>
+
+                      <!-- Forward chain: z_t → denoiser → (ẑ_0) → VAE 𝒟 → (x̂_0) → reward r → r̂ -->
+                      <rect x="10" y="112" width="34" height="22" rx="4" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.2"/>
+                      <text x="27" y="127" text-anchor="middle" font-family="Castoro, Times, serif" font-size="12" font-style="italic" fill="#1e3a8a">𝐳<tspan font-size="8" baseline-shift="sub">t</tspan></text>
+
+                      <line x1="46" y1="123" x2="58" y2="123" stroke="#1f2937" stroke-width="1.2"/>
+                      <polygon points="58,123 52,120 52,126" fill="#1f2937"/>
+
+                      <rect x="60" y="112" width="64" height="22" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.2"/>
+                      <text x="92" y="127" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="10" font-weight="600" fill="#5b21b6">denoiser</text>
+
+                      <!-- arrow + ẑ_0 label -->
+                      <line x1="126" y1="123" x2="160" y2="123" stroke="#1f2937" stroke-width="1.2"/>
+                      <polygon points="160,123 154,120 154,126" fill="#1f2937"/>
+                      <foreignObject x="124" y="98" width="38" height="14">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="text-align: center; font-size: 9.5px; color: #5b21b6; font-style: italic;">$\hat{\mathbf z}_0$</div>
+                      </foreignObject>
+
+                      <rect x="162" y="112" width="52" height="22" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.2"/>
+                      <text x="188" y="127" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="10" font-weight="600" fill="#5b21b6">VAE 𝒟</text>
+
+                      <!-- arrow + x̂_0 label -->
+                      <line x1="216" y1="123" x2="248" y2="123" stroke="#1f2937" stroke-width="1.2"/>
+                      <polygon points="248,123 242,120 242,126" fill="#1f2937"/>
+                      <foreignObject x="214" y="98" width="38" height="14">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="text-align: center; font-size: 9.5px; color: #5b21b6; font-style: italic;">$\hat{\mathbf x}_0$</div>
+                      </foreignObject>
+
+                      <rect x="250" y="112" width="64" height="22" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.2"/>
+                      <text x="282" y="127" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="10" font-weight="600" fill="#5b21b6">reward 𝑟</text>
+
+                      <line x1="316" y1="123" x2="330" y2="123" stroke="#1f2937" stroke-width="1.2"/>
+                      <polygon points="330,123 324,120 324,126" fill="#1f2937"/>
+
+                      <text x="340" y="130" font-family="Castoro, Times, serif" font-size="17" font-style="italic" font-weight="700" fill="#991b1b">r̂</text>
+
+                      <!-- BACKPROP arrow (red, long, looping under chain) — labelled gradient -->
+                      <path d="M 344 144 Q 344 168 320 168 L 30 168 Q 10 168 10 144" stroke="#dc2626" stroke-width="1.8" fill="none"/>
+                      <polygon points="10,144 7,152 14,152" fill="#dc2626"/>
+                      <foreignObject x="40" y="174" width="320" height="18">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Google Sans', sans-serif; font-size: 10.5px; font-weight: 700; color: #991b1b; text-align: center; line-height: 18px;">
+                          $\nabla_{\mathbf z_t} \hat r$ via backprop &middot; 3 networks differentiated
+                        </div>
+                      </foreignObject>
+
+                      <!-- Jensen-gap / Tweedie note -->
+                      <foreignObject x="10" y="196" width="420" height="32">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Google Sans', sans-serif; font-size: 9.5px; color: #6b7280; font-style: italic; text-align: center; line-height: 14px;">
+                          <strong style="color: #991b1b; font-style: normal;">+ Jensen-gap bias:</strong> Tweedie sets $V_t(\mathbf{z}_t) \approx r(\mathcal{D}(\text{denoiser}(\mathbf{z}_t)))$, not the true $\mathbb{E}[r(\mathbf{z}_0)\mid\mathbf{z}_t]$. The gradient inherits the bias.
+                        </div>
+                      </foreignObject>
+
+                      <!-- divider -->
+                      <line x1="20" y1="234" x2="420" y2="234" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="3 3"/>
+
+                      <!-- ============================================================
+                           WITH STITCHVM panel — y=240 to 348
+                           ============================================================ -->
+                      <text x="6" y="252" font-family="Google Sans, sans-serif" font-size="9" font-weight="700" fill="#10b981" letter-spacing="0.14em">WITH STITCHVM</text>
+                      <!-- Green NEW cost pill -->
+                      <rect x="240" y="242" width="196" height="18" rx="9" fill="#d1fae5" stroke="#10b981" stroke-width="1.4"/>
+                      <rect x="246" y="246" width="36" height="10" rx="5" fill="#10b981"/>
+                      <text x="264" y="254" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="7.5" font-weight="800" fill="#ffffff" letter-spacing="0.08em">NEW</text>
+                      <text x="362" y="254" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="9.5" font-weight="700" fill="#065f46" letter-spacing="0.04em">direct gradient · exact</text>
+
+                      <!-- Forward chain: z_t → V_t → V_t(z_t) -->
+                      <rect x="10" y="282" width="34" height="22" rx="4" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.2"/>
+                      <text x="27" y="297" text-anchor="middle" font-family="Castoro, Times, serif" font-size="12" font-style="italic" fill="#1e3a8a">𝐳<tspan font-size="8" baseline-shift="sub">t</tspan></text>
+
+                      <line x1="46" y1="293" x2="58" y2="293" stroke="#10b981" stroke-width="1.4"/>
+                      <polygon points="58,293 52,290 52,296" fill="#10b981"/>
+
+                      <!-- V_t block (bigger, MathJax) -->
+                      <rect x="60" y="276" width="74" height="34" rx="8" fill="#a7f3d0" stroke="#10b981" stroke-width="2"/>
+                      <foreignObject x="60" y="280" width="74" height="28">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="text-align: center; color: #065f46; line-height: 28px; font-size: 17px;">
+                          $V_t$
+                        </div>
+                      </foreignObject>
+                      <text x="97" y="324" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="8.5" font-style="italic" fill="#065f46">noisy latent in · scalar out</text>
+
+                      <line x1="136" y1="293" x2="148" y2="293" stroke="#10b981" stroke-width="1.4"/>
+                      <polygon points="148,293 142,290 142,296" fill="#10b981"/>
+
+                      <foreignObject x="152" y="285" width="80" height="18">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="font-size: 12px; color: #065f46; font-weight: 700; font-style: italic;">$V_t(\mathbf{z}_t)$</div>
+                      </foreignObject>
+
+                      <!-- BACKPROP arrow (green, short, looping under) -->
+                      <path d="M 200 312 Q 200 332 100 332 L 30 332 Q 10 332 10 312" stroke="#10b981" stroke-width="1.8" fill="none"/>
+                      <polygon points="10,312 7,320 14,320" fill="#10b981"/>
+                      <foreignObject x="50" y="338" width="320" height="18">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Google Sans', sans-serif; font-size: 10.5px; font-weight: 700; color: #065f46; text-align: center; line-height: 18px;">
+                          $\nabla_{\mathbf z_t} V_t$ via 1 backward · no decoder · no Tweedie
+                        </div>
+                      </foreignObject>
+
+                      <!-- ============================================================
+                           MECHANISM note at the bottom
+                           ============================================================ -->
+                      <foreignObject x="10" y="364" width="420" height="44">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Google Sans', sans-serif; font-size: 10px; color: #065f46; font-style: italic; text-align: center; line-height: 14px;">
+                          <strong style="color: #065f46; font-style: normal;">Mechanism:</strong> $V_t$ takes the noisy latent $\mathbf{z}_t$ directly, so $\nabla_{\mathbf z_t} V_t$ is one autograd call through $V_t$ &mdash; no decoder differentiation, no denoiser differentiation, no Tweedie approximation. <strong style="color: #065f46; font-style: normal;">Faster AND less biased</strong> at every step.
+                        </div>
+                      </foreignObject>
+                    </svg>
+                  </div>
+                  <p class="reach-item-caption">
+                    DPS guides denoising by adding $c\,\nabla V_t$ to the velocity field at every
+                    step &mdash; so the gradient's quality and cost both matter. Standard DPS
+                    plugs Tweedie's approximation $V_t \approx r(\mathcal{D}(\text{denoiser}(\mathbf z_t)))$
+                    into the gradient, which forces backprop through the reward, the VAE
+                    decoder, <em>and</em> the denoiser, and inherits Jensen-gap bias. StitchVM
+                    replaces all of that with a learned $V_t$ that consumes $\mathbf z_t$
+                    directly: $\nabla_{\mathbf z_t} V_t$ is one autograd call, with no decoder
+                    differentiation and no Tweedie approximation &mdash; <em>faster gradient,
+                    less bias, especially in high-noise regions</em>.
+                  </p>
+                </div>
+
+                <!-- Particle sampling -->
+                <div class="reach-card reach-inference">
+                  <h4 class="reach-item-title">
+                    FK steering
+                    <span class="reach-item-examples">particle sampling</span>
+                  </h4>
+
+                  <div class="reach-fig-wrap">
+                    <svg viewBox="0 0 440 432" xmlns="http://www.w3.org/2000/svg">
+                      <!-- ============================================================
+                           TOP — STANDARD FK STEERING — N scaling axis
+                           ============================================================ -->
+                      <text x="6" y="14" font-family="Google Sans, sans-serif" font-size="9" font-weight="700" fill="#9ca3af" letter-spacing="0.14em">STANDARD FK STEERING</text>
+                      <!-- N-axis pill (prominent) -->
+                      <rect x="244" y="2" width="192" height="18" rx="9" fill="#fee2e2" stroke="#dc2626" stroke-width="1.4"/>
+                      <text x="340" y="14" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="9.5" font-weight="700" fill="#991b1b" letter-spacing="0.04em">scale axis ↑ N · add particles</text>
+
+                      <!-- Row 1: particle 1 -->
+                      <circle cx="18" cy="38" r="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.2"/>
+                      <text x="18" y="41" text-anchor="middle" font-family="Castoro, Times, serif" font-size="8.5" font-style="italic" fill="#1e3a8a">𝐳<tspan font-size="6" baseline-shift="super">1</tspan></text>
+                      <line x1="26" y1="38" x2="44" y2="38" stroke="#dc2626" stroke-width="1"/>
+                      <polygon points="44,38 39,36 39,40" fill="#dc2626"/>
+                      <rect x="46" y="28" width="148" height="20" rx="3" fill="#fef2f2" stroke="#dc2626" stroke-width="1.2"/>
+                      <text x="120" y="42" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="9.5" font-weight="700" fill="#991b1b">denoiser + VAE + reward</text>
+                      <line x1="196" y1="38" x2="212" y2="38" stroke="#dc2626" stroke-width="1"/>
+                      <polygon points="212,38 207,36 207,40" fill="#dc2626"/>
+                      <text x="218" y="42" font-family="Castoro, Times, serif" font-size="11" font-style="italic" font-weight="700" fill="#991b1b">w<tspan font-size="7" baseline-shift="sub">1</tspan></text>
+
+                      <!-- Row 2: particle 2 — HIGHLIGHTED with amber halo (zoom source) -->
+                      <circle cx="18" cy="66" r="13" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/>
+                      <circle cx="18" cy="66" r="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.2"/>
+                      <text x="18" y="69" text-anchor="middle" font-family="Castoro, Times, serif" font-size="8.5" font-style="italic" fill="#1e3a8a">𝐳<tspan font-size="6" baseline-shift="super">2</tspan></text>
+                      <line x1="32" y1="66" x2="44" y2="66" stroke="#dc2626" stroke-width="1"/>
+                      <polygon points="44,66 39,64 39,68" fill="#dc2626"/>
+                      <rect x="46" y="56" width="148" height="20" rx="3" fill="#fef2f2" stroke="#dc2626" stroke-width="1.2"/>
+                      <text x="120" y="70" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="9.5" font-weight="700" fill="#991b1b">denoiser + VAE + reward</text>
+                      <line x1="196" y1="66" x2="212" y2="66" stroke="#dc2626" stroke-width="1"/>
+                      <polygon points="212,66 207,64 207,68" fill="#dc2626"/>
+                      <text x="218" y="70" font-family="Castoro, Times, serif" font-size="11" font-style="italic" font-weight="700" fill="#991b1b">w<tspan font-size="7" baseline-shift="sub">2</tspan></text>
+
+                      <!-- Row 3: particle 3 -->
+                      <circle cx="18" cy="92" r="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.2"/>
+                      <text x="18" y="95" text-anchor="middle" font-family="Castoro, Times, serif" font-size="8.5" font-style="italic" fill="#1e3a8a">𝐳<tspan font-size="6" baseline-shift="super">3</tspan></text>
+                      <line x1="26" y1="92" x2="44" y2="92" stroke="#dc2626" stroke-width="1"/>
+                      <polygon points="44,92 39,90 39,94" fill="#dc2626"/>
+                      <rect x="46" y="82" width="148" height="20" rx="3" fill="#fef2f2" stroke="#dc2626" stroke-width="1.2"/>
+                      <text x="120" y="96" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="9.5" font-weight="700" fill="#991b1b">denoiser + VAE + reward</text>
+                      <line x1="196" y1="92" x2="212" y2="92" stroke="#dc2626" stroke-width="1"/>
+                      <polygon points="212,92 207,90 207,94" fill="#dc2626"/>
+                      <text x="218" y="96" font-family="Castoro, Times, serif" font-size="11" font-style="italic" font-weight="700" fill="#991b1b">w<tspan font-size="7" baseline-shift="sub">3</tspan></text>
+
+                      <!-- ⋮ -->
+                      <text x="18" y="112" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="10" fill="#6b7280">⋮</text>
+                      <text x="120" y="112" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="10" fill="#991b1b">⋮</text>
+                      <text x="218" y="112" font-family="Google Sans, sans-serif" font-size="10" fill="#991b1b">⋮</text>
+
+                      <!-- Row N: particle N -->
+                      <circle cx="18" cy="126" r="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.2"/>
+                      <text x="18" y="129" text-anchor="middle" font-family="Castoro, Times, serif" font-size="8.5" font-style="italic" fill="#1e3a8a">𝐳<tspan font-size="6" baseline-shift="super">N</tspan></text>
+                      <line x1="26" y1="126" x2="44" y2="126" stroke="#dc2626" stroke-width="1"/>
+                      <polygon points="44,126 39,124 39,128" fill="#dc2626"/>
+                      <rect x="46" y="116" width="148" height="20" rx="3" fill="#fef2f2" stroke="#dc2626" stroke-width="1.2"/>
+                      <text x="120" y="130" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="9.5" font-weight="700" fill="#991b1b">denoiser + VAE + reward</text>
+                      <line x1="196" y1="126" x2="212" y2="126" stroke="#dc2626" stroke-width="1"/>
+                      <polygon points="212,126 207,124 207,128" fill="#dc2626"/>
+                      <text x="218" y="130" font-family="Castoro, Times, serif" font-size="11" font-style="italic" font-weight="700" fill="#991b1b">w<tspan font-size="7" baseline-shift="sub">N</tspan></text>
+
+                      <!-- Converging arrows to RESAMPLE -->
+                      <line x1="240" y1="42" x2="266" y2="85" stroke="#dc2626" stroke-width="0.7" opacity="0.55"/>
+                      <line x1="240" y1="70" x2="266" y2="85" stroke="#dc2626" stroke-width="0.7" opacity="0.55"/>
+                      <line x1="240" y1="96" x2="266" y2="85" stroke="#dc2626" stroke-width="0.7" opacity="0.55"/>
+                      <line x1="240" y1="130" x2="266" y2="85" stroke="#dc2626" stroke-width="0.7" opacity="0.55"/>
+
+                      <!-- RESAMPLE pill -->
+                      <rect x="268" y="74" width="92" height="24" rx="12" fill="#dc2626"/>
+                      <text x="314" y="90" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="10.5" font-weight="700" fill="#ffffff" letter-spacing="0.06em">RESAMPLE</text>
+                      <text x="314" y="112" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="8.5" font-style="italic" fill="#991b1b">over N particles</text>
+
+                      <!-- Diverging arrows to new particles -->
+                      <line x1="360" y1="86" x2="386" y2="42" stroke="#dc2626" stroke-width="0.7" opacity="0.55"/>
+                      <line x1="360" y1="86" x2="386" y2="68" stroke="#dc2626" stroke-width="0.7" opacity="0.55"/>
+                      <line x1="360" y1="86" x2="386" y2="96" stroke="#dc2626" stroke-width="0.7" opacity="0.55"/>
+                      <line x1="360" y1="86" x2="386" y2="130" stroke="#dc2626" stroke-width="0.7" opacity="0.55"/>
+
+                      <!-- New particles -->
+                      <circle cx="396" cy="38" r="8" fill="#fef2f2" stroke="#dc2626" stroke-width="1"/>
+                      <circle cx="396" cy="66" r="8" fill="#fef2f2" stroke="#dc2626" stroke-width="1"/>
+                      <circle cx="396" cy="92" r="8" fill="#fef2f2" stroke="#dc2626" stroke-width="1"/>
+                      <text x="396" y="112" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="10" fill="#991b1b">⋮</text>
+                      <circle cx="396" cy="126" r="8" fill="#fef2f2" stroke="#dc2626" stroke-width="1"/>
+                      <text x="396" y="146" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="8" font-style="italic" fill="#991b1b">next N</text>
+
+                      <!-- standard bottom note (MathJax, 2-line) -->
+                      <foreignObject x="10" y="150" width="420" height="36">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Google Sans', sans-serif; font-size: 10px; color: #6b7280; font-style: italic; text-align: center; line-height: 16px;">
+                          <strong style="color: #991b1b; font-style: normal;">FK steering's scaling axis is $N$</strong> &mdash; each particle needs one denoiser + VAE + reward call to compute its weight, so cost $\propto N$.
+                        </div>
+                      </foreignObject>
+
+                      <!-- ============================================================
+                           ZOOM TRANSITION — clear visual flow
+                           ============================================================ -->
+                      <!-- curved dashed arrow from amber halo (top) down to the ZOOM badge
+                           (routed through the far-left gutter so it does not cross the standard bottom note text) -->
+                      <path d="M 18 80 C 4 130, 4 190, 130 200" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="6 3" fill="none" opacity="0.9"/>
+                      <polygon points="130,200 121,198 125,207" fill="#f59e0b"/>
+
+                      <!-- ZOOM badge (big, with magnifying glass icon) -->
+                      <rect x="128" y="188" width="208" height="32" rx="16" fill="#fef3c7" stroke="#f59e0b" stroke-width="2.2"/>
+                      <g transform="translate(150, 204)">
+                        <circle cx="0" cy="0" r="7.5" fill="none" stroke="#92400e" stroke-width="2.2"/>
+                        <line x1="5.3" y1="5.3" x2="11" y2="11" stroke="#92400e" stroke-width="2.6" stroke-linecap="round"/>
+                      </g>
+                      <text x="246" y="209" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="12" font-weight="700" fill="#92400e" letter-spacing="0.06em">ZOOM IN ON ONE PARTICLE</text>
+
+                      <!-- downward chevron tail under the ZOOM badge — handoff to bottom panel
+                           (the matching amber halo on the zoomed particle anchors the destination,
+                            so no need for a second long arrow crossing the StitchVM panel) -->
+                      <polygon points="246,232 238,222 254,222" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.4" stroke-linejoin="round"/>
+
+                      <!-- ============================================================
+                           BOTTOM — WITH STITCHVM — M scaling axis (NEW)
+                           ============================================================ -->
+                      <text x="6" y="252" font-family="Google Sans, sans-serif" font-size="9" font-weight="700" fill="#10b981" letter-spacing="0.14em">WITH STITCHVM</text>
+                      <!-- M-axis pill (prominent, marked NEW) -->
+                      <rect x="222" y="240" width="214" height="18" rx="9" fill="#d1fae5" stroke="#10b981" stroke-width="1.4"/>
+                      <rect x="228" y="244" width="36" height="10" rx="5" fill="#10b981"/>
+                      <text x="246" y="252" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="7.5" font-weight="800" fill="#ffffff" letter-spacing="0.08em">NEW</text>
+                      <text x="350" y="252" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="9.5" font-weight="700" fill="#065f46" letter-spacing="0.04em">scale axis ↑ M · per particle</text>
+
+                      <!-- zoomed particle with matching amber halo -->
+                      <circle cx="34" cy="312" r="24" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/>
+                      <circle cx="34" cy="312" r="18" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.8"/>
+                      <text x="34" y="317" text-anchor="middle" font-family="Castoro, Times, serif" font-size="14" font-style="italic" fill="#1e3a8a">𝐳<tspan font-size="9" baseline-shift="sub">t</tspan></text>
+                      <text x="34" y="348" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="9" fill="#6b7280">one of N</text>
+
+                      <!-- fan to M=4 proposals — each is one i.i.d. sample from the diffusion transition kernel p(z_{t-1}|z_t) -->
+                      <line x1="58" y1="312" x2="98" y2="280" stroke="#1f2937" stroke-width="1"/>
+                      <line x1="58" y1="312" x2="98" y2="304" stroke="#1f2937" stroke-width="1"/>
+                      <line x1="58" y1="312" x2="98" y2="332" stroke="#1f2937" stroke-width="1"/>
+                      <line x1="58" y1="312" x2="98" y2="356" stroke="#1f2937" stroke-width="1"/>
+
+                      <!-- "×M draws" callout in the middle of the fan-out (white pill for readability over the arrows) -->
+                      <rect x="60" y="304" width="36" height="16" rx="4" fill="#ffffff" stroke="#7c2d12" stroke-width="0.7"/>
+                      <foreignObject x="60" y="304" width="36" height="16">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="text-align: center; font-family: 'Google Sans', sans-serif; font-size: 9px; font-style: italic; font-weight: 700; color: #7c2d12; line-height: 16px;">$\times M$ draws</div>
+                      </foreignObject>
+
+                      <!-- M=4 proposal dots — each is one z^m_{t-1} sampled from p(z_{t-1}|z_t)
+                           (column shifted down 8px so the "M next-step candidates" label above has clearance) -->
+                      <circle cx="108" cy="280" r="6" fill="#fff" stroke="#1f2937" stroke-width="1"/>
+                      <circle cx="108" cy="304" r="6" fill="#fff" stroke="#1f2937" stroke-width="1"/>
+                      <circle cx="108" cy="332" r="6" fill="#fff" stroke="#1f2937" stroke-width="1"/>
+                      <circle cx="108" cy="356" r="6" fill="#fff" stroke="#1f2937" stroke-width="1"/>
+                      <!-- richer proposal label with MathJax, placed in the gap between the M-axis pill row and the first dot -->
+                      <foreignObject x="28" y="258" width="164" height="14">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="text-align: center; font-family: 'Google Sans', sans-serif; font-size: 9.5px; font-style: italic; font-weight: 700; color: #7c2d12; line-height: 14px; white-space: nowrap;">$M$ next-step candidates</div>
+                      </foreignObject>
+                      <foreignObject x="56" y="366" width="104" height="14">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="text-align: center; font-family: 'Google Sans', sans-serif; font-size: 8px; font-style: italic; color: #6b7280; line-height: 14px;">$\mathbf{z}^m_{t-1} \!\sim p(\mathbf{z}_{t-1}|\mathbf{z}_t)$</div>
+                      </foreignObject>
+
+                      <!-- arrows from proposal dots to V_t (updated y1 to match new dot positions) -->
+                      <line x1="116" y1="280" x2="182" y2="304" stroke="#10b981" stroke-width="1.1"/>
+                      <line x1="116" y1="304" x2="182" y2="308" stroke="#10b981" stroke-width="1.1"/>
+                      <line x1="116" y1="332" x2="182" y2="312" stroke="#10b981" stroke-width="1.1"/>
+                      <line x1="116" y1="356" x2="182" y2="316" stroke="#10b981" stroke-width="1.1"/>
+
+                      <!-- V_t block (MathJax) -->
+                      <rect x="184" y="294" width="68" height="34" rx="8" fill="#a7f3d0" stroke="#10b981" stroke-width="2"/>
+                      <foreignObject x="184" y="298" width="68" height="28">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="text-align: center; color: #065f46; line-height: 28px; font-size: 17px;">
+                          $V_t$
+                        </div>
+                      </foreignObject>
+                      <!-- V_t subtitle: emphasises both M evals AND that scoring is on the noisy latent (no decode) -->
+                      <foreignObject x="160" y="330" width="120" height="32">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="text-align: center; font-family: 'Google Sans', sans-serif; font-size: 8.5px; color: #065f46; font-style: italic; line-height: 13px; white-space: nowrap;">
+                          <div>cheap · $M$ evals</div>
+                          <div>scores noisy latents</div>
+                        </div>
+                      </foreignObject>
+
+                      <!-- arrows from V_t to scores -->
+                      <line x1="254" y1="311" x2="286" y2="272" stroke="#10b981" stroke-width="1"/>
+                      <line x1="254" y1="311" x2="286" y2="296" stroke="#10b981" stroke-width="1"/>
+                      <line x1="254" y1="311" x2="286" y2="324" stroke="#10b981" stroke-width="1"/>
+                      <line x1="254" y1="311" x2="286" y2="348" stroke="#10b981" stroke-width="1"/>
+
+                      <!-- M=4 score bars (best highlighted) -->
+                      <rect x="290" y="268" width="20" height="8" rx="2" fill="#d1fae5" stroke="#10b981" stroke-width="0.8"/>
+                      <rect x="290" y="292" width="38" height="8" rx="2" fill="#10b981"/>
+                      <rect x="290" y="320" width="14" height="8" rx="2" fill="#d1fae5" stroke="#10b981" stroke-width="0.8"/>
+                      <rect x="290" y="344" width="26" height="8" rx="2" fill="#d1fae5" stroke="#10b981" stroke-width="0.8"/>
+
+                      <text x="336" y="276" font-family="Google Sans, sans-serif" font-size="8" fill="#6b7280">score 1</text>
+                      <text x="336" y="300" font-family="Google Sans, sans-serif" font-size="8.5" font-weight="700" fill="#065f46">★ best</text>
+                      <text x="336" y="328" font-family="Google Sans, sans-serif" font-size="8" fill="#6b7280">score 3</text>
+                      <text x="336" y="352" font-family="Google Sans, sans-serif" font-size="8" fill="#6b7280">score M</text>
+
+                      <!-- arrow to argmax pill -->
+                      <line x1="366" y1="296" x2="382" y2="296" stroke="#10b981" stroke-width="1.4"/>
+                      <polygon points="382,296 376,293 376,299" fill="#10b981"/>
+
+                      <!-- argmax pill -->
+                      <rect x="384" y="284" width="52" height="24" rx="12" fill="#10b981"/>
+                      <text x="410" y="300" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="10" font-weight="700" fill="#ffffff" letter-spacing="0.04em">argmax</text>
+
+                      <!-- StitchVM bottom note (MathJax, 2-line, full mechanism) — shifted down so the z^m formula label above has clearance -->
+                      <foreignObject x="10" y="388" width="420" height="32">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Google Sans', sans-serif; font-size: 10px; color: #065f46; font-style: italic; text-align: center; line-height: 16px;">
+                          <strong style="color: #065f46; font-style: normal;">Mechanism:</strong> from one particle, draw $M$ next-step latents $\mathbf{z}^m_{t-1} \!\sim p(\mathbf{z}_{t-1}|\mathbf{z}_t)$, score each cheaply with $V_t$ (no decoder), keep the argmax. <strong style="color: #065f46; font-style: normal;">New axis: $M$.</strong>
+                        </div>
+                      </foreignObject>
+                    </svg>
+                  </div>
+                  <p class="reach-item-caption">
+                    Standard FK steering scales along one axis &mdash; <em>more particles</em> $N$
+                    &mdash; and each new particle pays a full denoiser + VAE + reward call to get
+                    its weight before multinomial resampling. StitchVM opens a <strong>second
+                    scaling axis</strong> on the <em>same</em> particle: from $\mathbf{z}_t$, draw
+                    $M$ candidate next-step latents
+                    $\mathbf{z}^m_{t-1} \sim p(\mathbf{z}_{t-1}|\mathbf{z}_t)$ by running the
+                    diffusion transition kernel $M$ times (one stochastic denoising step,
+                    sampled $M$ times). Score each candidate cheaply with $V_t$ &mdash;
+                    <em>directly on the noisy latent, with no decoder</em> &mdash; and keep the
+                    argmax as the next particle. Compute now scales along
+                    <em>proposals-per-particle</em> ($M$) instead of along expensive particles ($N$).
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- TRAINING-TIME section -->
+            <div class="reach-section" style="margin-top: 2rem;">
+              <p class="reach-section-label reach-training-label">TRAINING-TIME ALIGNMENT</p>
+              <h3 class="reach-section-title">Supervised at every noise level.</h3>
+
+              <div class="reach-grid">
+                <!-- DRaFT · AlignProp · DiffusionNFT — unified -->
+                <div class="reach-card reach-training">
+                  <h4 class="reach-item-title">
+                    DRaFT &middot; AlignProp &middot; DiffusionNFT
+                    <span class="reach-item-examples">direct reward finetuning &middot; RL post-training</span>
+                  </h4>
+
+                  <div class="reach-fig-wrap">
+                    <svg viewBox="0 0 440 330" xmlns="http://www.w3.org/2000/svg">
+                      <!-- ============================================================
+                           STANDARD panel — full T-step rollout, terminal reward at z_0
+                           ============================================================ -->
+                      <text x="6" y="14" font-family="Google Sans, sans-serif" font-size="9" font-weight="700" fill="#9ca3af" letter-spacing="0.14em">STANDARD</text>
+                      <!-- Red cost pill -->
+                      <rect x="184" y="2" width="252" height="18" rx="9" fill="#fee2e2" stroke="#dc2626" stroke-width="1.4"/>
+                      <text x="310" y="14" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="9.5" font-weight="700" fill="#991b1b" letter-spacing="0.04em">rollout cost: T steps · supervision only at 𝐳₀</text>
+
+                      <!-- Trajectory: z_1 →·→·→·→·→·→·→ z_0 → r -->
+                      <text x="6" y="52" font-family="Castoro, Times, serif" font-size="13" font-style="italic" fill="#7c2d12" font-weight="700">𝐳<tspan font-size="10" baseline-shift="sub">1</tspan></text>
+                      <line x1="24" y1="48" x2="354" y2="48" stroke="#1f2937" stroke-width="1.4"/>
+                      <g fill="#7c3aed">
+                        <circle cx="60" cy="48" r="3"/>
+                        <circle cx="110" cy="48" r="3"/>
+                        <circle cx="160" cy="48" r="3"/>
+                        <circle cx="210" cy="48" r="3"/>
+                        <circle cx="260" cy="48" r="3"/>
+                        <circle cx="310" cy="48" r="3"/>
+                      </g>
+                      <polygon points="354,48 348,45 348,51" fill="#1f2937"/>
+
+                      <rect x="358" y="36" width="40" height="24" rx="4" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.2"/>
+                      <text x="378" y="52" text-anchor="middle" font-family="Castoro, Times, serif" font-size="13" font-style="italic" fill="#1e3a8a">𝐳<tspan font-size="10" baseline-shift="sub">0</tspan></text>
+
+                      <line x1="400" y1="48" x2="414" y2="48" stroke="#dc2626" stroke-width="1.4"/>
+                      <polygon points="414,48 408,45 408,51" fill="#dc2626"/>
+                      <text x="420" y="52" font-family="Castoro, Times, serif" font-size="13" font-style="italic" fill="#991b1b" font-weight="700">r</text>
+
+                      <!-- "T denoiser calls" annotation under the trajectory dots -->
+                      <foreignObject x="60" y="58" width="280" height="14">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Google Sans', sans-serif; font-size: 9px; color: #6b7280; font-style: italic; text-align: center; line-height: 14px;">$T$ denoiser calls per iteration</div>
+                      </foreignObject>
+
+                      <!-- "Gradient" curly bracket from z_0 going back -->
+                      <path d="M 378 64 Q 378 80 320 80 L 100 80 Q 24 80 24 64" stroke="#dc2626" stroke-width="1.4" fill="none" stroke-dasharray="0"/>
+                      <polygon points="24,64 21,72 27,72" fill="#dc2626"/>
+                      <foreignObject x="50" y="84" width="320" height="16">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Google Sans', sans-serif; font-size: 10px; font-weight: 700; color: #991b1b; text-align: center; line-height: 16px;">
+                          gradient flows back through all $T$ denoiser calls
+                        </div>
+                      </foreignObject>
+
+                      <!-- Supervision-gap note -->
+                      <foreignObject x="10" y="108" width="420" height="32">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Google Sans', sans-serif; font-size: 9.5px; color: #6b7280; font-style: italic; text-align: center; line-height: 14px;">
+                          <strong style="color: #991b1b; font-style: normal;">Supervision gap:</strong> reward is defined on the clean image $\mathbf z_0$ &mdash; intermediate noisy latents $\mathbf z_t$ get <em>no</em> direct learning signal (high-noise steps remain dark).
+                        </div>
+                      </foreignObject>
+
+                      <!-- divider -->
+                      <line x1="20" y1="148" x2="420" y2="148" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="3 3"/>
+
+                      <!-- ============================================================
+                           WITH STITCHVM panel — early stop at z_τ, supervised at every τ
+                           ============================================================ -->
+                      <text x="6" y="166" font-family="Google Sans, sans-serif" font-size="9" font-weight="700" fill="#10b981" letter-spacing="0.14em">WITH STITCHVM</text>
+                      <!-- Green NEW cost pill -->
+                      <rect x="178" y="154" width="258" height="18" rx="9" fill="#d1fae5" stroke="#10b981" stroke-width="1.4"/>
+                      <rect x="184" y="158" width="36" height="10" rx="5" fill="#10b981"/>
+                      <text x="202" y="166" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="7.5" font-weight="800" fill="#ffffff" letter-spacing="0.08em">NEW</text>
+                      <text x="332" y="166" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="9.5" font-weight="700" fill="#065f46" letter-spacing="0.04em">rollout cost: τ steps · supervised at every τ</text>
+
+                      <!-- Trajectory: z_1 →·→ z_τ → V_t(z_τ) -->
+                      <text x="6" y="208" font-family="Castoro, Times, serif" font-size="13" font-style="italic" fill="#7c2d12" font-weight="700">𝐳<tspan font-size="10" baseline-shift="sub">1</tspan></text>
+                      <line x1="24" y1="204" x2="148" y2="204" stroke="#1f2937" stroke-width="1.4"/>
+                      <g fill="#7c3aed">
+                        <circle cx="60" cy="204" r="3"/>
+                        <circle cx="110" cy="204" r="3"/>
+                      </g>
+                      <polygon points="148,204 142,201 142,207" fill="#1f2937"/>
+
+                      <rect x="152" y="192" width="56" height="24" rx="4" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.8"/>
+                      <text x="180" y="208" text-anchor="middle" font-family="Castoro, Times, serif" font-size="13" font-style="italic" font-weight="700" fill="#92400e">𝐳<tspan font-size="10" baseline-shift="sub">τ</tspan></text>
+
+                      <line x1="210" y1="204" x2="226" y2="204" stroke="#10b981" stroke-width="1.4"/>
+                      <polygon points="226,204 220,201 220,207" fill="#10b981"/>
+
+                      <!-- V_t(z_τ) block (green) -->
+                      <rect x="230" y="190" width="98" height="28" rx="6" fill="#a7f3d0" stroke="#10b981" stroke-width="2"/>
+                      <foreignObject x="230" y="194" width="98" height="22">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="text-align: center; color: #065f46; line-height: 22px; font-size: 14px; font-weight: 700;">$V_t(\mathbf z_\tau)$</div>
+                      </foreignObject>
+
+                      <!-- "τ denoiser calls" annotation under trajectory -->
+                      <foreignObject x="40" y="218" width="160" height="14">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Google Sans', sans-serif; font-size: 9px; color: #6b7280; font-style: italic; text-align: center; line-height: 14px;">only $\tau$ denoiser calls ($\tau \!\ll\! T$)</div>
+                      </foreignObject>
+                      <foreignObject x="220" y="222" width="120" height="14">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Google Sans', sans-serif; font-size: 9px; color: #065f46; font-style: italic; text-align: center; line-height: 14px;">substitutes terminal reward</div>
+                      </foreignObject>
+
+                      <!-- Supervision-everywhere note: τ slider visual -->
+                      <foreignObject x="10" y="244" width="420" height="32">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Google Sans', sans-serif; font-size: 9.5px; color: #065f46; font-style: italic; text-align: center; line-height: 14px;">
+                          <strong style="color: #065f46; font-style: normal;">Supervision at every noise level:</strong> $V_t$ scores noisy latents directly, so $\tau$ can be picked <em>anywhere</em> on the trajectory &mdash; high-noise steps finally get signal.
+                        </div>
+                      </foreignObject>
+
+                      <!-- ============================================================
+                           MECHANISM note
+                           ============================================================ -->
+                      <foreignObject x="10" y="286" width="420" height="44">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Google Sans', sans-serif; font-size: 10px; color: #065f46; font-style: italic; text-align: center; line-height: 14px;">
+                          <strong style="color: #065f46; font-style: normal;">Mechanism:</strong> instead of rolling out to $\mathbf z_0$ and applying the terminal reward $r$, early-stop at $\mathbf z_\tau$ and use $V_t(\mathbf z_\tau) \approx \mathbb{E}[r(\mathbf z_0)\mid\mathbf z_\tau]$ as the terminal. Same target, only $\tau/T$ the rollout cost, supervision available at every $\tau \in \{1,\ldots,T\}$.
+                        </div>
+                      </foreignObject>
+                    </svg>
+                  </div>
+                  <p class="reach-item-caption">
+                    All three methods finetune the denoiser using a <em>terminal</em> reward
+                    on the clean image $\mathbf z_0$, so every training iteration pays for a
+                    full $T$-step denoising rollout and the gradient backprops through all $T$
+                    denoiser calls. Worse, supervision lives only at $\mathbf z_0$
+                    &mdash; intermediate noisy latents get no signal. StitchVM plugs in a
+                    learned $V_t$ that approximates $\mathbb{E}[r(\mathbf z_0)\mid\mathbf z_t]$
+                    on noisy latents, so we can stop the rollout at an intermediate
+                    $\mathbf z_\tau$ and substitute $V_t(\mathbf z_\tau)$ for the terminal
+                    reward. The result: <em>τ/T the rollout cost</em>, and a learning signal
+                    available at every $\tau$ &mdash; including the high-noise steps that
+                    were previously dark.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- RESULTS                                                       -->
+    <!-- ============================================================ -->
+    <section class="section pt-6 pb-6" id="Results">
+      <div class="container is-max-desktop">
+        <div class="columns is-centered has-text-centered">
+          <div class="column is-four-fifths">
+            <p id="step-wins" class="results-eyebrow">⑤ &nbsp;THE WINS &nbsp;&middot;&nbsp; RESULTS</p>
+            <h2 class="title is-2 is-spaced" style="margin-bottom: 0.85rem; line-height: 1.18;">
+              Drop-in for every recipe.<br>
+              <span style="color: #10b981;">Quality up, cost down.</span>
+            </h2>
+            <p class="subtitle is-5" style="margin: 0 auto 1rem auto; max-width: 820px;">
+              The same StitchVM &mdash; <em>one</em> noisy-latent $V_t$, built once by stitching &mdash;
+              plugged into four very different alignment methods. Across DPS, FK steering, DRaFT,
+              and DiffusionNFT it delivers <strong>better quality</strong> with <strong>materially
+              lower compute</strong>.
+            </p>
+
+            <!-- HEADLINE STAT CARDS -->
+            <div class="results-stats-grid">
+              <div class="stat-card">
+                <p class="stat-card-method">DPS · gradient guidance</p>
+                <p class="stat-card-number">3.2&times; <span class="stat-unit">faster</span></p>
+                <p class="stat-card-detail">↓50% peak GPU memory · better quality on nearly every reward&times;metric pair</p>
+              </div>
+              <div class="stat-card">
+                <p class="stat-card-method">FK steering · particle sampling</p>
+                <p class="stat-card-number">33% <span class="stat-unit">lower cost</span></p>
+                <p class="stat-card-detail">$(N{=}8, M{=}6)$ matches standard FKS at $N{=}14$ &mdash; new $M$-axis</p>
+              </div>
+              <div class="stat-card">
+                <p class="stat-card-method">DRaFT · direct reward finetuning</p>
+                <p class="stat-card-number">22–26% <span class="stat-unit">GPU-h saved</span></p>
+                <p class="stat-card-detail">+ higher score across all metrics (supervision at every noise level)</p>
+              </div>
+              <div class="stat-card">
+                <p class="stat-card-method">DiffusionNFT · RL post-training</p>
+                <p class="stat-card-number">55%+ <span class="stat-unit">GPU-h saved</span></p>
+                <p class="stat-card-detail">while reaching higher scores with less compute</p>
+              </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <!-- RESULT 1 — Main StitchVM performance on noisy latents         -->
+            <!-- ============================================================ -->
+            <div class="result-block">
+              <p class="result-block-eyebrow">RESULT 1 · NOISY-LATENT VALUE MODEL</p>
+              <h3 class="result-block-title">StitchVM retains the reward model's capability on noisy latents.</h3>
+              <p class="result-block-lead">
+                Across three diffusion backbones (SD 3.5 Medium/Large, FLUX) and four reward
+                models (OpenAI CLIP, DFN-CLIP, HPSv2, Aesthetic Predictor), StitchVM closely
+                tracks the original clean reward model at low noise and <em>degrades gracefully</em>
+                as noise rises &mdash; substantially beating both <strong>VAE-stitching</strong>
+                and <strong>NoisyCLIP retraining at LAION-400M scale</strong>. The expensive
+                "train a noisy-latent reward from scratch" baseline is no longer needed.
+              </p>
+              <div class="result-fig-paper">
+                <!-- Row A: CLIP retrieval, 4 panels full width (paper Fig. 1a) -->
+                <img src="static/images/fig_retrieval-1.png" alt="Zero-shot image-text retrieval (Avg. Recall@1) on MSCOCO and Flickr30K, vs. noise level σ">
+                <!-- Row B: preference + aesthetic + legend (paper Fig. 1b/1c) -->
+                <div class="result-fig-paper-row">
+                  <img class="panel-pref" src="static/images/fig_preference-1.png" alt="Preference accuracy on HPDv2 and ImageReward benchmarks, vs. noise level σ">
+                  <img class="panel-aes"  src="static/images/fig_aesthetic-1.png" alt="Aesthetic SRCC on AVA test split, vs. noise level σ">
+                  <img class="panel-leg"  src="static/images/fig_legend-1.png"    alt="Legend: clean reward, NoisyCLIP, VAE-stitching baselines, and StitchVM variants">
+                </div>
+                <p class="result-fig-caption">
+                  Results of StitchVM on latents with different noise levels. $\oplus$ denotes stitching of a
+                  reward model with a pretrained diffusion module (VAE encoder or DiT). StitchVM
+                  (blue) tracks the clean reward (dashed line) far better than VAE-stitching or
+                  NoisyCLIP, across retrieval, preference, and aesthetic benchmarks.
+                </p>
+              </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <!-- RESULT 2 — FK steering scaling                                -->
+            <!-- ============================================================ -->
+            <div class="result-block">
+              <p class="result-block-eyebrow">RESULT 2 · A NEW SCALING AXIS FOR FK STEERING</p>
+              <h3 class="result-block-title">Scaling along $M$ beats scaling along $N$.</h3>
+              <p class="result-block-lead">
+                Cheap $V_t$ scoring unlocks a second scaling axis on FK steering: instead of
+                adding more particles ($N$), each particle spawns $M$ proposals scored by
+                StitchVM at near-zero marginal cost (partial-DiT inference + stitching head,
+                <em>shared</em> with the next denoising step). On FLUX with HPSv2 reward,
+                <strong>FK steering + StitchVM at $(N{=}8, M{=}6)$ matches standard FKS at
+                $N{=}14$ with 33% less compute</strong>, and is strictly above the $N$-only
+                curve everywhere.
+              </p>
+              <div class="result-fig" style="max-width: 740px;">
+                <img src="static/images/fig_fk_scaling-1.png" alt="HPSv2 score vs GPU-hours on FLUX, comparing N-scaling (FKS) against (N,M)-scaling (FKS+StitchVM)">
+                <p class="result-fig-caption">
+                  HPSv2 score vs. GPU-hours on FLUX. Blue: standard FK steering scaling $N$.
+                  Red/dark-red: FK steering + StitchVM scaling $M$ at fixed $N$. The
+                  StitchVM curves dominate the standard one across the whole compute range.
+                </p>
+              </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <!-- RESULT 3 — Training-time methods                              -->
+            <!-- ============================================================ -->
+            <div class="result-block">
+              <p class="result-block-eyebrow">RESULT 3 · TRAINING-TIME ALIGNMENT</p>
+              <h3 class="result-block-title">Same target, $\tau/T$ the rollout cost &mdash; better quality on top.</h3>
+              <p class="result-block-lead">
+                On SD 3.5 Medium at $512{\times}512$ with DFN-CLIP and HPSv2 as training
+                rewards, replacing the terminal reward $r(\mathbf z_0)$ with the StitchVM value
+                $V_t(\mathbf z_\tau)$ (early-stop at intermediate $\tau$) cuts wall-clock
+                training cost dramatically <em>and</em> raises every metric:
+              </p>
+              <ul style="font-size: 0.96rem; color: #1f2937; line-height: 1.6; margin: 0.4rem 0 0.9rem 1.2rem; text-align: left;">
+                <li><strong>DRaFT</strong>: 22–26% fewer GPU-hours, plus higher quality &mdash;
+                  StitchVM provides direct $V_t$ supervision at intermediate noisy latents,
+                  including high-noise regions where standard DRaFT had to truncate backprop.</li>
+                <li><strong>DiffusionNFT</strong>: 55%+ fewer GPU-hours while reaching higher
+                  GenEval / ImageReward / PickScore / HPSv2 / DFN-CLIP scores.</li>
+              </ul>
+              <div class="result-fig" style="max-width: 980px;">
+                <img src="static/images/fig_rl_nft_convergence.png" alt="Training curves: DiffusionNFT vs. DiffusionNFT + StitchVM across GenEval, HPSv2, DFN-CLIP, ImageReward, and PickScore against GPU-hours">
+                <p class="result-fig-caption">
+                  Training curves on SD 3.5 Medium finetuned against joint DFN-CLIP + HPSv2 reward
+                  (appendix). <strong>Red</strong>: DiffusionNFT + StitchVM. <strong>Blue</strong>: DiffusionNFT.
+                  StitchVM reaches the same plateau as the original method in <em>roughly half</em>
+                  the GPU-hours, then continues climbing on every held-out metric.
+                </p>
+              </div>
+              <p class="result-fig-caption" style="margin-top: 0.6rem;">
+                Each StitchVM itself is a <em>one-time</em>, lightweight build: $\approx$ 10
+                GPU-hours at $512{\times}512$ (24–32 GPU-h at $1024{\times}1024$) on GH200 &mdash;
+                trivial relative to the savings it enables downstream.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BibTeX -->
+    <section class="section pt-0" id="BibTeX">
+      <div class="container is-max-desktop content">
+        <h2 class="title">Citation</h2>
+        <pre class="selectable">
+<code>@article{go2026stitchvm,
+    title   = {Stitched Value Model for Diffusion Alignment},
+    author  = {Go, Hyojun and Chung, Hyungjin and Truong, Prune and Bhat, Goutam
+               and Mi, Li and An, Zhaochong and Zhao, Zixiang and Narnhofer, Dominik
+               and Belongie, Serge and Tombari, Federico and Schindler, Konrad},
+    journal = {arXiv preprint},
+    year    = {2026}
+}</code>
+</pre>
+      </div>
+    </section>
+
+    <footer class="footer pt-4 pb-0">
+      <div class="container">
+        <div class="columns is-centered">
+          <div class="column is-8">
+            <div class="content has-text-centered">
+              <p>
+                Website template based on
+                <a href="https://github.com/nerfies/nerfies.github.io">Nerfies</a>
+                / the
+                <a href="https://github.com/prs-eth/rollingdepth">prs-eth project page family</a>
+                and licensed under
+                <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">CC-BY-SA-4.0</a>.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Story-rail active-section tracking -->
+    <script>
+      (function () {
+        var links = Array.prototype.slice.call(document.querySelectorAll('.story-rail a'));
+        if (!links.length || typeof IntersectionObserver === 'undefined') return;
+        var entries = links.map(function (a) {
+          var sel = a.getAttribute('href');
+          var t = sel ? document.querySelector(sel) : null;
+          return t ? { link: a, target: t } : null;
+        }).filter(Boolean);
+        var visible = new Map();
+        var obs = new IntersectionObserver(function (recs) {
+          recs.forEach(function (r) {
+            visible.set(r.target, r.isIntersecting ? r.intersectionRatio : 0);
+          });
+          // Pick the first entry whose target has crossed into view from the top.
+          var active = null;
+          for (var i = 0; i < entries.length; i++) {
+            var rect = entries[i].target.getBoundingClientRect();
+            if (rect.top < window.innerHeight * 0.45) active = entries[i].link;
+          }
+          links.forEach(function (l) { l.classList.toggle('is-active', l === active); });
+        }, { rootMargin: '0px 0px -55% 0px', threshold: [0, 0.01, 0.5, 1] });
+        entries.forEach(function (e) { obs.observe(e.target); });
+      })();
+    </script>
+  </body>
+</html>
