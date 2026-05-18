@@ -1275,6 +1275,30 @@
         font-style: normal;
         font-weight: 700;
       }
+      /* Institution-logo footer inside the teaser figure. Subtle, centered. */
+      .teaser-affil {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1.1rem;
+        margin: 0.9rem 0 0.1rem 0;
+        opacity: 0.72;
+      }
+      .teaser-affil .teaser-logo { width: auto; display: block; }
+      .teaser-affil .teaser-logo-eth    { height: 22px; }
+      .teaser-affil .teaser-logo-google { height: 32px; }
+      .teaser-affil .teaser-logo-ucph   { height: 28px; }
+      .teaser-affil-dot {
+        color: #BDC1C6;
+        font-size: 1rem;
+        line-height: 1;
+      }
+      @media (max-width: 540px) {
+        .teaser-affil { gap: 0.8rem; }
+        .teaser-affil .teaser-logo-eth    { height: 16px; }
+        .teaser-affil .teaser-logo-google { height: 24px; }
+        .teaser-affil .teaser-logo-ucph   { height: 22px; }
+      }
       @supports not (container-type: inline-size) {
         .teaser-grid { font-size: clamp(12px, 1.4vw, 17px); }
       }
@@ -2088,6 +2112,13 @@
                 <strong>StitchVM</strong> takes a pretrained pixel reward model and, at <span class="accent-cost">small compute cost</span>,
                 lets the <strong>same model</strong> score the noisy intermediate latents &mdash; not just the final clean image.
               </p>
+              <div class="teaser-affil" aria-label="Affiliations">
+                <img src="static/logos/eth.svg" alt="ETH Zürich" class="teaser-logo teaser-logo-eth">
+                <span class="teaser-affil-dot">·</span>
+                <img src="static/logos/google.svg" alt="Google" class="teaser-logo teaser-logo-google">
+                <span class="teaser-affil-dot">·</span>
+                <img src="static/logos/ucph.svg" alt="University of Copenhagen" class="teaser-logo teaser-logo-ucph">
+              </div>
             </div>
           </div>
         </div>
