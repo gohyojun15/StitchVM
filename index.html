@@ -2823,7 +2823,7 @@
                   </h4>
 
                   <div class="reach-fig-wrap">
-                    <svg viewBox="0 0 440 410" xmlns="http://www.w3.org/2000/svg">
+                    <svg viewBox="0 0 440 434" xmlns="http://www.w3.org/2000/svg">
                       <!-- ============================================================
                            HEADER — what DPS is and what we need
                            ============================================================ -->
@@ -2899,52 +2899,65 @@
                       </foreignObject>
 
                       <!-- Jensen-gap / Tweedie note -->
-                      <foreignObject x="10" y="196" width="420" height="32">
+                      <foreignObject x="10" y="196" width="420" height="22">
                         <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Google Sans', sans-serif; font-size: 9.5px; color: #6b7280; font-style: italic; text-align: center; line-height: 14px;">
-                          <strong style="color: #991b1b; font-style: normal;">+ Jensen-gap bias:</strong> Tweedie sets $V_t(\mathbf{z}_t) \approx r(\mathcal{D}(\text{denoiser}(\mathbf{z}_t)))$, not the true $\mathbb{E}[r(\mathbf{z}_0)\mid\mathbf{z}_t]$. The gradient inherits the bias.
+                          <strong style="color: #991b1b; font-style: normal;">+ Jensen-gap bias:</strong> Tweedie sets $V_t(\mathbf{z}_t) \approx r(\mathcal{D}(\text{denoiser}(\mathbf{z}_t)))$, not the true $\mathbb{E}[r(\mathbf{z}_0)\mid\mathbf{z}_t]$.
                         </div>
                       </foreignObject>
 
+                      <!-- Noise-axis cue: bias grows with noise level σ -->
+                      <defs>
+                        <linearGradient id="dps-noise-grad" x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="0%" stop-color="#dbeafe"/>
+                          <stop offset="60%" stop-color="#fca5a5"/>
+                          <stop offset="100%" stop-color="#991b1b"/>
+                        </linearGradient>
+                      </defs>
+                      <rect x="62" y="227" width="316" height="7" rx="3.5" fill="url(#dps-noise-grad)"/>
+                      <text x="58" y="234" text-anchor="end" font-family="Google Sans, sans-serif" font-size="9" fill="#6b7280" font-style="italic">low σ</text>
+                      <text x="382" y="234" font-family="Google Sans, sans-serif" font-size="9" fill="#991b1b" font-style="italic" font-weight="700">high σ</text>
+                      <text x="220" y="248" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="9.5" fill="#7c2d12" font-weight="700" font-style="italic">bias worst at high noise &mdash; exactly where DPS guidance works hardest</text>
+
                       <!-- divider -->
-                      <line x1="20" y1="234" x2="420" y2="234" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="3 3"/>
+                      <line x1="20" y1="258" x2="420" y2="258" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="3 3"/>
 
                       <!-- ============================================================
-                           WITH STITCHVM panel — y=240 to 348
+                           WITH STITCHVM panel — y=264 to 372
                            ============================================================ -->
-                      <text x="6" y="252" font-family="Google Sans, sans-serif" font-size="9" font-weight="700" fill="#10b981" letter-spacing="0.14em">WITH STITCHVM</text>
+                      <text x="6" y="276" font-family="Google Sans, sans-serif" font-size="9" font-weight="700" fill="#10b981" letter-spacing="0.14em">WITH STITCHVM</text>
                       <!-- Green NEW cost pill -->
-                      <rect x="240" y="242" width="196" height="18" rx="9" fill="#d1fae5" stroke="#10b981" stroke-width="1.4"/>
-                      <rect x="246" y="246" width="36" height="10" rx="5" fill="#10b981"/>
-                      <text x="264" y="254" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="7.5" font-weight="800" fill="#ffffff" letter-spacing="0.08em">NEW</text>
-                      <text x="362" y="254" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="9.5" font-weight="700" fill="#065f46" letter-spacing="0.04em">direct gradient · exact</text>
+                      <rect x="240" y="266" width="196" height="18" rx="9" fill="#d1fae5" stroke="#10b981" stroke-width="1.4"/>
+                      <rect x="246" y="270" width="36" height="10" rx="5" fill="#10b981"/>
+                      <text x="264" y="278" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="7.5" font-weight="800" fill="#ffffff" letter-spacing="0.08em">NEW</text>
+                      <text x="362" y="278" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="9.5" font-weight="700" fill="#065f46" letter-spacing="0.04em">direct gradient · exact</text>
 
                       <!-- Forward chain: z_t → V_t → V_t(z_t) -->
-                      <rect x="10" y="282" width="34" height="22" rx="4" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.2"/>
-                      <text x="27" y="297" text-anchor="middle" font-family="Castoro, Times, serif" font-size="12" font-style="italic" fill="#1e3a8a">𝐳<tspan font-size="8" baseline-shift="sub">t</tspan></text>
+                      <rect x="10" y="306" width="34" height="22" rx="4" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.2"/>
+                      <text x="27" y="321" text-anchor="middle" font-family="Castoro, Times, serif" font-size="12" font-style="italic" fill="#1e3a8a">𝐳<tspan font-size="8" baseline-shift="sub">t</tspan></text>
 
-                      <line x1="46" y1="293" x2="58" y2="293" stroke="#10b981" stroke-width="1.4"/>
-                      <polygon points="58,293 52,290 52,296" fill="#10b981"/>
+                      <line x1="46" y1="317" x2="58" y2="317" stroke="#10b981" stroke-width="1.4"/>
+                      <polygon points="58,317 52,314 52,320" fill="#10b981"/>
 
                       <!-- V_t block (bigger, MathJax) -->
-                      <rect x="60" y="276" width="74" height="34" rx="8" fill="#a7f3d0" stroke="#10b981" stroke-width="2"/>
-                      <foreignObject x="60" y="280" width="74" height="28">
+                      <rect x="60" y="300" width="74" height="34" rx="8" fill="#a7f3d0" stroke="#10b981" stroke-width="2"/>
+                      <foreignObject x="60" y="304" width="74" height="28">
                         <div xmlns="http://www.w3.org/1999/xhtml" style="text-align: center; color: #065f46; line-height: 28px; font-size: 17px;">
                           $V_t$
                         </div>
                       </foreignObject>
-                      <text x="97" y="324" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="8.5" font-style="italic" fill="#065f46">noisy latent in · scalar out</text>
+                      <text x="97" y="348" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="8.5" font-style="italic" fill="#065f46">noisy latent in · scalar out</text>
 
-                      <line x1="136" y1="293" x2="148" y2="293" stroke="#10b981" stroke-width="1.4"/>
-                      <polygon points="148,293 142,290 142,296" fill="#10b981"/>
+                      <line x1="136" y1="317" x2="148" y2="317" stroke="#10b981" stroke-width="1.4"/>
+                      <polygon points="148,317 142,314 142,320" fill="#10b981"/>
 
-                      <foreignObject x="152" y="285" width="80" height="18">
+                      <foreignObject x="152" y="309" width="80" height="18">
                         <div xmlns="http://www.w3.org/1999/xhtml" style="font-size: 12px; color: #065f46; font-weight: 700; font-style: italic;">$V_t(\mathbf{z}_t)$</div>
                       </foreignObject>
 
                       <!-- BACKPROP arrow (green, short, looping under) -->
-                      <path d="M 200 312 Q 200 332 100 332 L 30 332 Q 10 332 10 312" stroke="#10b981" stroke-width="1.8" fill="none"/>
-                      <polygon points="10,312 7,320 14,320" fill="#10b981"/>
-                      <foreignObject x="50" y="338" width="320" height="18">
+                      <path d="M 200 336 Q 200 356 100 356 L 30 356 Q 10 356 10 336" stroke="#10b981" stroke-width="1.8" fill="none"/>
+                      <polygon points="10,336 7,344 14,344" fill="#10b981"/>
+                      <foreignObject x="50" y="362" width="320" height="18">
                         <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Google Sans', sans-serif; font-size: 10.5px; font-weight: 700; color: #065f46; text-align: center; line-height: 18px;">
                           $\nabla_{\mathbf z_t} V_t$ via 1 backward · no decoder · no Tweedie
                         </div>
@@ -2953,24 +2966,13 @@
                       <!-- ============================================================
                            MECHANISM note at the bottom
                            ============================================================ -->
-                      <foreignObject x="10" y="364" width="420" height="44">
+                      <foreignObject x="10" y="388" width="420" height="44">
                         <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Google Sans', sans-serif; font-size: 10px; color: #065f46; font-style: italic; text-align: center; line-height: 14px;">
                           <strong style="color: #065f46; font-style: normal;">Mechanism:</strong> $V_t$ takes the noisy latent $\mathbf{z}_t$ directly, so $\nabla_{\mathbf z_t} V_t$ is one autograd call through $V_t$ &mdash; no decoder differentiation, no denoiser differentiation, no Tweedie approximation. <strong style="color: #065f46; font-style: normal;">Faster AND less biased</strong> at every step.
                         </div>
                       </foreignObject>
                     </svg>
                   </div>
-                  <p class="reach-item-caption">
-                    DPS guides denoising by adding $c\,\nabla V_t$ to the velocity field at every
-                    step &mdash; so the gradient's quality and cost both matter. Standard DPS
-                    plugs Tweedie's approximation $V_t \approx r(\mathcal{D}(\text{denoiser}(\mathbf z_t)))$
-                    into the gradient, which forces backprop through the reward, the VAE
-                    decoder, <em>and</em> the denoiser, and inherits Jensen-gap bias. StitchVM
-                    replaces all of that with a learned $V_t$ that consumes $\mathbf z_t$
-                    directly: $\nabla_{\mathbf z_t} V_t$ is one autograd call, with no decoder
-                    differentiation and no Tweedie approximation &mdash; <em>faster gradient,
-                    less bias, especially in high-noise regions</em>.
-                  </p>
                 </div>
 
                 <!-- Particle sampling -->
