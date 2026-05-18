@@ -1260,6 +1260,25 @@
       @supports not (container-type: inline-size) {
         .teaser-grid { font-size: clamp(12px, 1.4vw, 17px); }
       }
+      /* Narrow viewports: the thumbnails compress to ~0 width and the row
+         layout breaks. Drop the thumb column and tighten everything else. */
+      @container teaser (max-width: 540px) {
+        .teaser-thumb { display: none; }
+        .teaser-grid {
+          column-gap: 0.45em;
+          row-gap: 0.55em;
+          font-size: clamp(13px, 3.4cqi, 18px);
+        }
+        .teaser-rm-pill { padding: 0.4em 0.75em; }
+        .teaser-transition { padding: 0.3em 0.7em; gap: 0.4em; }
+      }
+      /* Fallback for browsers without container queries — use viewport. */
+      @supports not (container-type: inline-size) {
+        @media (max-width: 600px) {
+          .teaser-thumb { display: none; }
+          .teaser-grid { column-gap: 0.45em; row-gap: 0.55em; }
+        }
+      }
 
       /* Simple side-by-side comparison: pixel reward vs StitchVM */
       .compare-card {
