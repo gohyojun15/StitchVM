@@ -174,9 +174,14 @@
         margin-bottom: 0.75rem;
       }
 
-      /* Global: prevent any horizontal scroll on narrow viewports */
+      /* Global: prevent any horizontal scroll on narrow viewports.
+         overflow-x must be set on EXACTLY ONE of <html>/<body> — setting
+         it on both turns <body> into its own scroll container in addition
+         to <html>, which can show a second vertical scrollbar. We pick
+         <html> as the canonical scroll container. */
       *, *::before, *::after { box-sizing: border-box; }
-      html, body { overflow-x: hidden; max-width: 100%; margin: 0; padding: 0; }
+      html { overflow-x: hidden; max-width: 100%; margin: 0; padding: 0; }
+      body { max-width: 100%; margin: 0; padding: 0; }
       img, svg, video, canvas { max-width: 100%; }
       .container { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
       @media (max-width: 768px) {
