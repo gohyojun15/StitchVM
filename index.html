@@ -2983,7 +2983,7 @@
                   </h4>
 
                   <div class="reach-fig-wrap">
-                    <svg viewBox="0 0 440 432" xmlns="http://www.w3.org/2000/svg">
+                    <svg viewBox="0 0 440 470" xmlns="http://www.w3.org/2000/svg">
                       <!-- ============================================================
                            TOP — STANDARD FK STEERING — N scaling axis
                            ============================================================ -->
@@ -3183,27 +3183,34 @@
                       <rect x="384" y="284" width="52" height="24" rx="12" fill="#10b981"/>
                       <text x="410" y="300" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="10" font-weight="700" fill="#ffffff" letter-spacing="0.04em">argmax</text>
 
-                      <!-- StitchVM bottom note (MathJax, 2-line, full mechanism) — shifted down so the z^m formula label above has clearance -->
-                      <foreignObject x="10" y="388" width="420" height="32">
-                        <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Google Sans', sans-serif; font-size: 10px; color: #065f46; font-style: italic; text-align: center; line-height: 16px;">
-                          <strong style="color: #065f46; font-style: normal;">Mechanism:</strong> from one particle, draw $M$ next-step latents $\mathbf{z}^m_{t-1} \!\sim p(\mathbf{z}_{t-1}|\mathbf{z}_t)$, score each cheaply with $V_t$ (no decoder), keep the argmax. <strong style="color: #065f46; font-style: normal;">New axis: $M$.</strong>
+                      <!-- ============================================================
+                           COST-ASYMMETRY STRIP — punches WHY M is the cheap axis
+                           ============================================================ -->
+                      <text x="220" y="394" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="9" font-weight="700" fill="#6b7280" letter-spacing="0.10em">COST PER +1 ON EACH AXIS</text>
+
+                      <!-- N-axis cost bar (long red) -->
+                      <text x="68" y="416" text-anchor="end" font-family="Google Sans, sans-serif" font-size="10" font-weight="700" fill="#991b1b">+1 N</text>
+                      <rect x="74" y="406" width="316" height="16" rx="4" fill="#fee2e2" stroke="#dc2626" stroke-width="1.2"/>
+                      <text x="232" y="417" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="10" font-weight="700" fill="#991b1b">denoiser + VAE + reward</text>
+
+                      <!-- M-axis cost bar (short green) — visually ~8x shorter -->
+                      <text x="68" y="438" text-anchor="end" font-family="Google Sans, sans-serif" font-size="10" font-weight="700" fill="#065f46">+1 M</text>
+                      <rect x="74" y="428" width="40" height="16" rx="4" fill="#d1fae5" stroke="#10b981" stroke-width="1.4"/>
+                      <foreignObject x="74" y="428" width="40" height="16">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="text-align: center; font-family: 'Google Sans', sans-serif; font-size: 10px; font-weight: 700; color: #065f46; line-height: 16px;">$V_t$</div>
+                      </foreignObject>
+                      <foreignObject x="120" y="428" width="280" height="16">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Google Sans', sans-serif; font-size: 9.5px; color: #065f46; font-style: italic; line-height: 16px;">no decoder &middot; no reward chain</div>
+                      </foreignObject>
+
+                      <!-- Tagline -->
+                      <foreignObject x="10" y="450" width="420" height="14">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Google Sans', sans-serif; font-size: 10px; font-weight: 700; color: #065f46; font-style: italic; text-align: center; line-height: 14px;">
+                          StitchVM opens a cheap axis &mdash; many $M$ evals cost less than one expensive N-particle.
                         </div>
                       </foreignObject>
                     </svg>
                   </div>
-                  <p class="reach-item-caption">
-                    Standard FK steering scales along one axis &mdash; <em>more particles</em> $N$
-                    &mdash; and each new particle pays a full denoiser + VAE + reward call to get
-                    its weight before multinomial resampling. StitchVM opens a <strong>second
-                    scaling axis</strong> on the <em>same</em> particle: from $\mathbf{z}_t$, draw
-                    $M$ candidate next-step latents
-                    $\mathbf{z}^m_{t-1} \sim p(\mathbf{z}_{t-1}|\mathbf{z}_t)$ by running the
-                    diffusion transition kernel $M$ times (one stochastic denoising step,
-                    sampled $M$ times). Score each candidate cheaply with $V_t$ &mdash;
-                    <em>directly on the noisy latent, with no decoder</em> &mdash; and keep the
-                    argmax as the next particle. Compute now scales along
-                    <em>proposals-per-particle</em> ($M$) instead of along expensive particles ($N$).
-                  </p>
                 </div>
               </div>
             </div>
