@@ -2049,17 +2049,23 @@
                 <text x="520" y="88" font-family="Google Sans, sans-serif" font-size="26" font-weight="700" fill="#80868B">→</text>
                 <text x="556" y="89" font-family="Castoro, Times, serif" font-style="italic" font-weight="700" font-size="22" fill="#202124">reward</text>
 
-                <!-- Vertical dashed line connecting the two pill rows -->
-                <line x1="400" y1="112" x2="400" y2="222" stroke="url(#teaser-vline)" stroke-width="2" stroke-dasharray="4 3"/>
+                <!-- StitchVM TRANSFORMATION arrow: one bold arrow from the
+                     Reward model (top pill) straight down to the Value model
+                     (bottom pill). The arrow IS the StitchVM step; the label
+                     pill sits on the arrow at its midpoint. -->
+                <line x1="400" y1="112" x2="400" y2="200" stroke="#1967D2" stroke-width="3"/>
+                <polygon points="400,212 388,196 412,196" fill="#1967D2"/>
 
-                <!-- StitchVM transition pill -->
-                <rect x="288" y="140" width="224" height="34" rx="17" fill="#ffffff" fill-opacity="0.95" stroke="#D2E3FC" stroke-width="1"/>
-                <text x="315" y="163" font-family="Google Sans, sans-serif" font-size="15" font-weight="700" fill="#185ABC">StitchVM</text>
-                <text x="395" y="163" font-family="Castoro, Times, serif" font-style="italic" font-size="14" fill="#1967D2">small compute</text>
+                <!-- StitchVM label pill — anchored on the arrow at its midpoint,
+                     so the arrow visibly enters from above and exits below. -->
+                <rect x="284" y="138" width="232" height="36" rx="18" fill="#ffffff" stroke="#1967D2" stroke-width="2"/>
+                <text x="312" y="162" font-family="Google Sans, sans-serif" font-size="16" font-weight="700" fill="#1967D2">StitchVM</text>
+                <text x="395" y="162" font-family="Castoro, Times, serif" font-style="italic" font-size="14" fill="#1967D2">small compute</text>
 
-                <!-- OURS badge -->
-                <rect x="362" y="194" width="76" height="22" rx="11" fill="#4285F4"/>
-                <text x="400" y="210" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="10" font-weight="700" fill="#ffffff" letter-spacing="2px">OURS</text>
+                <!-- OURS badge — mirrors the EXISTING badge: sits just above
+                     the Value model pill, in the gap below the arrowhead. -->
+                <rect x="362" y="218" width="76" height="22" rx="11" fill="#4285F4"/>
+                <text x="400" y="234" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="10" font-weight="700" fill="#ffffff" letter-spacing="2px">OURS</text>
 
                 <!-- ROW 2 — noisy latent -->
                 <g transform="translate(40, 234)">
