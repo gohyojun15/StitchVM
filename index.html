@@ -264,6 +264,12 @@
         margin-left: 1px;
         letter-spacing: 0.02em;
       }
+      .publication-authors.responsive .author-row {
+        display: block;
+      }
+      .publication-authors.responsive .author-row-advisors {
+        margin-top: 0.25rem;
+      }
 
       /* === Text affiliations row — the "key" for the superscripts === */
       .text-affil-row {
@@ -1860,19 +1866,25 @@
                 </div>
               </div>
 
-              <!-- Authors — natural wrapping, responsive sizing -->
+              <!-- Authors — split into 3 lines so advisor row (Belongie, Tombari, Schindler) reads as a distinct group -->
               <div class="publication-authors responsive">
-                <span class="author-block"><a href="https://gohyojun15.github.io/" rel="noopener noreferrer">Hyojun Go</a><sup>1</sup>,</span>
-                <span class="author-block"><a href="https://hyungjin-chung.github.io/" rel="noopener noreferrer">Hyungjin Chung</a>,</span>
-                <span class="author-block"><a href="https://prunetruong.com/" rel="noopener noreferrer">Prune Truong</a><sup>2</sup>,</span>
-                <span class="author-block"><a href="https://goutamgmb.github.io/" rel="noopener noreferrer">Goutam Bhat</a><sup>2</sup>,</span>
-                <span class="author-block"><a href="https://limirs.github.io/" rel="noopener noreferrer">Li Mi</a><sup>1</sup>,</span>
-                <span class="author-block"><a href="https://zhaochongan.github.io/" rel="noopener noreferrer">Zhaochong An</a><sup>3</sup>,</span>
-                <span class="author-block"><a href="https://zhaozixiang1228.github.io/" rel="noopener noreferrer">Zixiang Zhao</a><sup>1</sup>,</span>
-                <span class="author-block"><a href="https://baug.ethz.ch/departement/personen/mitarbeiter/personen-detail.MzM5ODU5.TGlzdC82NzksLTU1NTc1NDEwMQ==.html" rel="noopener noreferrer">Dominik Narnhofer</a><sup>1</sup>,</span>
-                <span class="author-block"><a href="https://sergebelongie.github.io/" rel="noopener noreferrer">Serge Belongie</a><sup>3</sup>,</span>
-                <span class="author-block"><a href="https://federicotombari.github.io/" rel="noopener noreferrer">Federico Tombari</a><sup>2</sup>,</span>
-                <span class="author-block"><a href="https://prs.igp.ethz.ch/group/people/person-detail.schindler.html" rel="noopener noreferrer">Konrad Schindler</a><sup>1</sup></span>
+                <div class="author-row">
+                  <span class="author-block"><a href="https://gohyojun15.github.io/" rel="noopener noreferrer">Hyojun Go</a><sup>1</sup>,</span>
+                  <span class="author-block"><a href="https://hyungjin-chung.github.io/" rel="noopener noreferrer">Hyungjin Chung</a>,</span>
+                  <span class="author-block"><a href="https://prunetruong.com/" rel="noopener noreferrer">Prune Truong</a><sup>2</sup>,</span>
+                  <span class="author-block"><a href="https://goutamgmb.github.io/" rel="noopener noreferrer">Goutam Bhat</a><sup>2</sup>,</span>
+                </div>
+                <div class="author-row">
+                  <span class="author-block"><a href="https://limirs.github.io/" rel="noopener noreferrer">Li Mi</a><sup>1</sup>,</span>
+                  <span class="author-block"><a href="https://zhaochongan.github.io/" rel="noopener noreferrer">Zhaochong An</a><sup>3</sup>,</span>
+                  <span class="author-block"><a href="https://zhaozixiang1228.github.io/" rel="noopener noreferrer">Zixiang Zhao</a><sup>1</sup>,</span>
+                  <span class="author-block"><a href="https://baug.ethz.ch/departement/personen/mitarbeiter/personen-detail.MzM5ODU5.TGlzdC82NzksLTU1NTc1NDEwMQ==.html" rel="noopener noreferrer">Dominik Narnhofer</a><sup>1</sup>,</span>
+                </div>
+                <div class="author-row author-row-advisors">
+                  <span class="author-block"><a href="https://sergebelongie.github.io/" rel="noopener noreferrer">Serge Belongie</a><sup>3</sup>,</span>
+                  <span class="author-block"><a href="https://federicotombari.github.io/" rel="noopener noreferrer">Federico Tombari</a><sup>2</sup>,</span>
+                  <span class="author-block"><a href="https://prs.igp.ethz.ch/group/people/person-detail.schindler.html" rel="noopener noreferrer">Konrad Schindler</a><sup>1</sup></span>
+                </div>
               </div>
 
               <!-- Text affiliations — readable key for the superscripts -->
