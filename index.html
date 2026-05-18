@@ -1087,16 +1087,21 @@
          straight down from one to the other, making the "same model, ported"
          message instantly readable. */
       .teaser-figure {
-        container-type: inline-size;
-        container-name: teaser;
         background: linear-gradient(135deg, #F8F9FA 0%, #E8F0FE 100%);
         border: 1.5px solid #D2E3FC;
         border-radius: 14px;
         box-shadow: 0 4px 14px rgba(72, 95, 199, 0.07);
         padding: 1.3em 1.5em 1.1em 1.5em;
         margin: 1.25rem auto 0.5rem auto;
-        max-width: 920px;
+        max-width: 720px;
         box-sizing: border-box;
+      }
+      .teaser-svg {
+        display: block;
+        width: 100%;
+        height: auto;
+        max-width: 680px;
+        margin: 0 auto;
       }
       .teaser-grid {
         font-size: clamp(14px, 2.3cqi, 20px);
@@ -1991,108 +1996,75 @@
         <div class="columns is-centered has-text-centered">
           <div class="column is-four-fifths">
             <p class="tldr-block-eyebrow"><span class="eyebrow-num">②</span>What we do</p>
-            <!-- Shared SVG defs for x_0 / z_t thumbnails -->
-            <svg width="0" height="0" style="position: absolute;">
-              <defs>
-                <linearGradient id="cmp-sky" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="#FDE293" />
-                  <stop offset="55%" stop-color="#FCC934" />
-                  <stop offset="100%" stop-color="#B06000" />
-                </linearGradient>
-                <filter id="cmp-noise">
-                  <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" seed="7" />
-                  <feColorMatrix
-                    type="matrix"
-                    values="0.6 0 0 0 0.2  0 0.6 0 0 0.2  0 0 0.6 0 0.2  0 0 0 0.95 0"
-                  />
-                </filter>
-              </defs>
-            </svg>
-
-            <!-- Vertical teaser — same Reward model pill in both rows, with a
-                 StitchVM "stitching" arrow connecting the pill column straight down -->
+            <!-- Teaser figure: single inline SVG so it scales as one unit
+                 across all viewports — same approach as every other figure
+                 on this page. -->
             <div class="teaser-figure">
-              <div class="teaser-grid">
-                <!-- EXISTING badge (above row 1, in pill column) -->
-                <span class="teaser-side-label teaser-side-label-existing grid-row-existing-badge">Existing</span>
+              <svg class="teaser-svg" viewBox="0 0 720 320" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                  <linearGradient id="teaser-sky" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#FDE293"/>
+                    <stop offset="55%" stop-color="#FCC934"/>
+                    <stop offset="100%" stop-color="#B06000"/>
+                  </linearGradient>
+                  <filter id="teaser-noise">
+                    <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" seed="7"/>
+                    <feColorMatrix type="matrix" values="0.6 0 0 0 0.2  0 0.6 0 0 0.2  0 0 0.6 0 0.2  0 0 0 0.95 0"/>
+                  </filter>
+                  <linearGradient id="teaser-vline" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#8AB4F8" stop-opacity="0.55"/>
+                    <stop offset="100%" stop-color="#1967D2" stop-opacity="0.55"/>
+                  </linearGradient>
+                </defs>
 
-                <!-- ROW 1: clean image → Reward model → reward.
-                     Explicit width/height + inlined gradient so the SVG
-                     has intrinsic dimensions and is self-contained
-                     (mobile WebKit drops cross-SVG `url(#id)` refs). -->
-                <svg class="teaser-thumb grid-row1-thumb" width="60" height="45" viewBox="0 0 160 120" preserveAspectRatio="xMidYMid slice">
-                  <defs>
-                    <linearGradient id="cmp-sky-r1" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stop-color="#FDE293" />
-                      <stop offset="55%" stop-color="#FCC934" />
-                      <stop offset="100%" stop-color="#B06000" />
-                    </linearGradient>
-                  </defs>
-                  <rect width="160" height="120" rx="6" fill="url(#cmp-sky-r1)"/>
-                  <circle cx="112" cy="42" r="14" fill="#FEEFC3" opacity="0.95"/>
-                  <path d="M0 82 L30 56 L60 72 L92 50 L130 66 L160 56 L160 120 L0 120 Z" fill="#202124" opacity="0.75"/>
-                  <rect x="0" y="96" width="160" height="24" fill="#185ABC" opacity="0.55"/>
-                  <rect x="102" y="96" width="20" height="24" fill="#FDE293" opacity="0.6"/>
-                </svg>
-                <span class="teaser-input-label grid-row1-label">clean image</span>
-                <span class="teaser-arrow grid-row1-arrow-in">→</span>
-                <span class="teaser-rm-pill grid-row1-pill">Reward model</span>
-                <span class="teaser-arrow grid-row1-arrow-out">→</span>
-                <span class="teaser-output grid-row1-output">reward</span>
+                <!-- EXISTING badge -->
+                <rect x="340" y="6" width="120" height="22" rx="11" fill="#F1F3F4" stroke="#E8EAED" stroke-width="1"/>
+                <text x="400" y="22" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="10" font-weight="700" fill="#5F6368" letter-spacing="2px">EXISTING</text>
 
-                <!-- TRANSITION: vertical StitchVM arrow connecting the two RM pills -->
-                <div class="teaser-transition grid-transition">
-                  <span class="teaser-transition-name">StitchVM</span>
-                  <svg class="teaser-transition-arrow" viewBox="0 0 22 40" preserveAspectRatio="xMidYMid meet">
-                    <defs>
-                      <linearGradient id="arrow-vgrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#8AB4F8"/>
-                        <stop offset="100%" stop-color="#1967D2"/>
-                      </linearGradient>
-                    </defs>
-                    <!-- dashed upper shaft — represents the "stitching" -->
-                    <line x1="11" y1="1.5" x2="11" y2="20" stroke="url(#arrow-vgrad)"
-                          stroke-width="3" stroke-dasharray="3 2.5" stroke-linecap="round"/>
-                    <!-- solid lower shaft -->
-                    <line x1="11" y1="20" x2="11" y2="30" stroke="#1967D2"
-                          stroke-width="3" stroke-linecap="round"/>
-                    <!-- arrowhead — bold filled triangle -->
-                    <path d="M 2 29 L 20 29 L 11 39 Z" fill="#1967D2"/>
-                  </svg>
-                  <span class="teaser-transition-cost">small compute</span>
-                </div>
+                <!-- ROW 1 — clean image -->
+                <g transform="translate(40, 50)">
+                  <rect width="80" height="60" rx="6" fill="url(#teaser-sky)"/>
+                  <circle cx="58" cy="22" r="8" fill="#FEEFC3" opacity="0.95"/>
+                  <path d="M0 40 L16 28 L32 35 L48 24 L66 32 L80 28 L80 60 L0 60 Z" fill="#202124" opacity="0.75"/>
+                  <rect x="0" y="48" width="80" height="12" fill="#185ABC" opacity="0.55"/>
+                  <rect x="50" y="48" width="10" height="12" fill="#FDE293" opacity="0.6"/>
+                </g>
+                <text x="130" y="88" font-family="Castoro, Times, serif" font-style="italic" font-size="20" fill="#202124">clean image</text>
+                <text x="252" y="88" font-family="Google Sans, sans-serif" font-size="26" font-weight="700" fill="#80868B">→</text>
+                <rect x="290" y="60" width="220" height="46" rx="12" fill="#ffffff" stroke="#80868B" stroke-width="1.5"/>
+                <text x="400" y="90" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="18" font-weight="700" fill="#3C4043">Reward model</text>
+                <text x="520" y="88" font-family="Google Sans, sans-serif" font-size="26" font-weight="700" fill="#80868B">→</text>
+                <text x="556" y="89" font-family="Castoro, Times, serif" font-style="italic" font-weight="700" font-size="22" fill="#202124">reward</text>
 
-                <!-- OURS badge (above row 2, in pill column) -->
-                <span class="teaser-side-label teaser-side-label-ours grid-row-ours-badge">Ours</span>
+                <!-- Vertical dashed line connecting the two pill rows -->
+                <line x1="400" y1="112" x2="400" y2="222" stroke="url(#teaser-vline)" stroke-width="2" stroke-dasharray="4 3"/>
 
-                <!-- ROW 2: noisy latent → SAME Reward model → reward.
-                     Self-contained (gradient + noise filter inlined). -->
-                <svg class="teaser-thumb grid-row2-thumb" width="60" height="45" viewBox="0 0 160 120" preserveAspectRatio="xMidYMid slice">
-                  <defs>
-                    <linearGradient id="cmp-sky-r2" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stop-color="#FDE293" />
-                      <stop offset="55%" stop-color="#FCC934" />
-                      <stop offset="100%" stop-color="#B06000" />
-                    </linearGradient>
-                    <filter id="cmp-noise-r2">
-                      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" seed="7" />
-                      <feColorMatrix type="matrix" values="0.6 0 0 0 0.2  0 0.6 0 0 0.2  0 0 0.6 0 0.2  0 0 0 0.95 0"/>
-                    </filter>
-                  </defs>
+                <!-- StitchVM transition pill -->
+                <rect x="288" y="140" width="224" height="34" rx="17" fill="#ffffff" fill-opacity="0.95" stroke="#D2E3FC" stroke-width="1"/>
+                <text x="315" y="163" font-family="Google Sans, sans-serif" font-size="15" font-weight="700" fill="#185ABC">StitchVM</text>
+                <text x="395" y="163" font-family="Castoro, Times, serif" font-style="italic" font-size="14" fill="#1967D2">small compute</text>
+
+                <!-- OURS badge -->
+                <rect x="362" y="194" width="76" height="22" rx="11" fill="#4285F4"/>
+                <text x="400" y="210" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="10" font-weight="700" fill="#ffffff" letter-spacing="2px">OURS</text>
+
+                <!-- ROW 2 — noisy latent -->
+                <g transform="translate(40, 234)">
                   <g opacity="0.45">
-                    <rect width="160" height="120" rx="6" fill="url(#cmp-sky-r2)"/>
-                    <circle cx="112" cy="42" r="14" fill="#FEEFC3"/>
-                    <path d="M0 82 L30 56 L60 72 L92 50 L130 66 L160 56 L160 120 L0 120 Z" fill="#202124"/>
-                    <rect x="0" y="96" width="160" height="24" fill="#185ABC"/>
+                    <rect width="80" height="60" rx="6" fill="url(#teaser-sky)"/>
+                    <circle cx="58" cy="22" r="8" fill="#FEEFC3"/>
+                    <path d="M0 40 L16 28 L32 35 L48 24 L66 32 L80 28 L80 60 L0 60 Z" fill="#202124"/>
+                    <rect x="0" y="48" width="80" height="12" fill="#185ABC"/>
                   </g>
-                  <rect width="160" height="120" rx="6" filter="url(#cmp-noise-r2)" opacity="0.85"/>
-                </svg>
-                <span class="teaser-input-label grid-row2-label">noisy latent</span>
-                <span class="teaser-arrow grid-row2-arrow-in">→</span>
-                <span class="teaser-rm-pill grid-row2-pill">Value model</span>
-                <span class="teaser-arrow grid-row2-arrow-out">→</span>
-                <span class="teaser-output grid-row2-output">reward</span>
-              </div>
+                  <rect width="80" height="60" rx="6" filter="url(#teaser-noise)" opacity="0.85"/>
+                </g>
+                <text x="130" y="272" font-family="Castoro, Times, serif" font-style="italic" font-size="20" fill="#202124">noisy latent</text>
+                <text x="252" y="272" font-family="Google Sans, sans-serif" font-size="26" font-weight="700" fill="#80868B">→</text>
+                <rect x="290" y="244" width="220" height="46" rx="12" fill="#ffffff" stroke="#80868B" stroke-width="1.5"/>
+                <text x="400" y="274" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="18" font-weight="700" fill="#3C4043">Value model</text>
+                <text x="520" y="272" font-family="Google Sans, sans-serif" font-size="26" font-weight="700" fill="#80868B">→</text>
+                <text x="556" y="273" font-family="Castoro, Times, serif" font-style="italic" font-weight="700" font-size="22" fill="#202124">reward</text>
+              </svg>
               <p class="teaser-caption">
                 <strong>StitchVM</strong> takes a pretrained pixel reward model and, at <span class="accent-cost">small compute cost</span>,
                 lets the <strong>same model</strong> score the noisy intermediate latents &mdash; not just the final clean image.
