@@ -3606,7 +3606,12 @@
       </div>
     </footer>
 
-    <!-- Story-rail active-section tracking -->
+    <!-- Story-rail active-section tracking.
+         Uses pure IntersectionObserver data — no getBoundingClientRect
+         per callback, no forced layout, no rAF needed. The rootMargin
+         creates a thin "activation band" near the top half of the
+         viewport; the active link is the LAST entry in document order
+         that has crossed into that band. -->
     <script>
       (function () {
         var links = Array.prototype.slice.call(document.querySelectorAll('.story-rail a'));
@@ -3616,19 +3621,21 @@
           var t = sel ? document.querySelector(sel) : null;
           return t ? { link: a, target: t } : null;
         }).filter(Boolean);
+        if (!entries.length) return;
         var visible = new Map();
-        var obs = new IntersectionObserver(function (recs) {
-          recs.forEach(function (r) {
-            visible.set(r.target, r.isIntersecting ? r.intersectionRatio : 0);
-          });
-          // Pick the first entry whose target has crossed into view from the top.
+        function setActive() {
           var active = null;
           for (var i = 0; i < entries.length; i++) {
-            var rect = entries[i].target.getBoundingClientRect();
-            if (rect.top < window.innerHeight * 0.45) active = entries[i].link;
+            if (visible.get(entries[i].target)) active = entries[i].link;
           }
           links.forEach(function (l) { l.classList.toggle('is-active', l === active); });
-        }, { rootMargin: '0px 0px -55% 0px', threshold: [0, 0.01, 0.5, 1] });
+        }
+        var obs = new IntersectionObserver(function (recs) {
+          for (var i = 0; i < recs.length; i++) {
+            visible.set(recs[i].target, recs[i].isIntersecting);
+          }
+          setActive();
+        }, { rootMargin: '-40% 0px -55% 0px', threshold: 0 });
         entries.forEach(function (e) { obs.observe(e.target); });
       })();
     </script>
