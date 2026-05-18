@@ -2233,7 +2233,7 @@
                 <div class="why-block">
                   <div class="why-block-header">
                     Inference &mdash; gradient guidance
-                    <span class="why-block-examples">e.g. DPS, FreeDoM, MPGD</span>
+                    <span class="why-block-examples">e.g. DPS</span>
                   </div>
                   <div class="why-block-form">
                     <div class="why-block-form-math">
@@ -2244,20 +2244,13 @@
                       giving a corrected velocity $u^r_t$ used for sampling.
                     </div>
                   </div>
-                  <p class="why-block-why">
-                    <span class="why-block-why-label">Why $V_t$?</span>
-                    Sampling from the reward-tilted target $p^\star$ is provably equivalent
-                    to running the pretrained sampler with this single drift correction
-                    by $\nabla_{\mathbf z_t} V_t$. Without that gradient, the sampler has no
-                    way to bias trajectories toward higher reward.
-                  </p>
                 </div>
 
                 <!-- Inference: particle sampling -->
                 <div class="why-block">
                   <div class="why-block-header">
                     Inference &mdash; particle sampling
-                    <span class="why-block-examples">e.g. FK steering, SVDD, SMC</span>
+                    <span class="why-block-examples">e.g. FK steering</span>
                   </div>
                   <div class="why-block-form">
                     <div class="why-block-form-math">
@@ -2270,12 +2263,6 @@
                       $f$). Particles are then resampled in proportion to $G$.
                     </div>
                   </div>
-                  <p class="why-block-why">
-                    <span class="why-block-why-label">Why $V_t$?</span>
-                    Whatever $f$ is, the resampling weight is built from $V_t$ evaluations.
-                    Without $V_t$, the resampling has no signal to prefer promising particles
-                    over the rest.
-                  </p>
                 </div>
 
                 <!-- Training: reward-based finetuning (covers both direct finetuning and RL post-training) -->
