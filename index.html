@@ -1260,10 +1260,8 @@
       @supports not (container-type: inline-size) {
         .teaser-grid { font-size: clamp(12px, 1.4vw, 17px); }
       }
-      /* Narrow viewports: the thumbnails compress to ~0 width and the row
-         layout breaks. Drop the thumb column and tighten everything else. */
+      /* Narrow viewports: tighten gaps and pill padding so the row fits. */
       @container teaser (max-width: 540px) {
-        .teaser-thumb { display: none; }
         .teaser-grid {
           column-gap: 0.45em;
           row-gap: 0.55em;
@@ -1271,13 +1269,7 @@
         }
         .teaser-rm-pill { padding: 0.4em 0.75em; }
         .teaser-transition { padding: 0.3em 0.7em; gap: 0.4em; }
-      }
-      /* Fallback for browsers without container queries — use viewport. */
-      @supports not (container-type: inline-size) {
-        @media (max-width: 600px) {
-          .teaser-thumb { display: none; }
-          .teaser-grid { column-gap: 0.45em; row-gap: 0.55em; }
-        }
+        .teaser-thumb { width: 2.8em; height: 2.1em; }
       }
 
       /* Simple side-by-side comparison: pixel reward vs StitchVM */
@@ -2024,9 +2016,19 @@
                 <!-- EXISTING badge (above row 1, in pill column) -->
                 <span class="teaser-side-label teaser-side-label-existing grid-row-existing-badge">Existing</span>
 
-                <!-- ROW 1: clean image → Reward model → reward -->
-                <svg class="teaser-thumb grid-row1-thumb" viewBox="0 0 160 120" preserveAspectRatio="xMidYMid slice">
-                  <rect width="160" height="120" rx="6" fill="url(#cmp-sky)"/>
+                <!-- ROW 1: clean image → Reward model → reward.
+                     Explicit width/height + inlined gradient so the SVG
+                     has intrinsic dimensions and is self-contained
+                     (mobile WebKit drops cross-SVG `url(#id)` refs). -->
+                <svg class="teaser-thumb grid-row1-thumb" width="60" height="45" viewBox="0 0 160 120" preserveAspectRatio="xMidYMid slice">
+                  <defs>
+                    <linearGradient id="cmp-sky-r1" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#FDE293" />
+                      <stop offset="55%" stop-color="#FCC934" />
+                      <stop offset="100%" stop-color="#B06000" />
+                    </linearGradient>
+                  </defs>
+                  <rect width="160" height="120" rx="6" fill="url(#cmp-sky-r1)"/>
                   <circle cx="112" cy="42" r="14" fill="#FEEFC3" opacity="0.95"/>
                   <path d="M0 82 L30 56 L60 72 L92 50 L130 66 L160 56 L160 120 L0 120 Z" fill="#202124" opacity="0.75"/>
                   <rect x="0" y="96" width="160" height="24" fill="#185ABC" opacity="0.55"/>
@@ -2063,15 +2065,27 @@
                 <!-- OURS badge (above row 2, in pill column) -->
                 <span class="teaser-side-label teaser-side-label-ours grid-row-ours-badge">Ours</span>
 
-                <!-- ROW 2: noisy latent → SAME Reward model → reward -->
-                <svg class="teaser-thumb grid-row2-thumb" viewBox="0 0 160 120" preserveAspectRatio="xMidYMid slice">
+                <!-- ROW 2: noisy latent → SAME Reward model → reward.
+                     Self-contained (gradient + noise filter inlined). -->
+                <svg class="teaser-thumb grid-row2-thumb" width="60" height="45" viewBox="0 0 160 120" preserveAspectRatio="xMidYMid slice">
+                  <defs>
+                    <linearGradient id="cmp-sky-r2" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#FDE293" />
+                      <stop offset="55%" stop-color="#FCC934" />
+                      <stop offset="100%" stop-color="#B06000" />
+                    </linearGradient>
+                    <filter id="cmp-noise-r2">
+                      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" seed="7" />
+                      <feColorMatrix type="matrix" values="0.6 0 0 0 0.2  0 0.6 0 0 0.2  0 0 0.6 0 0.2  0 0 0 0.95 0"/>
+                    </filter>
+                  </defs>
                   <g opacity="0.45">
-                    <rect width="160" height="120" rx="6" fill="url(#cmp-sky)"/>
+                    <rect width="160" height="120" rx="6" fill="url(#cmp-sky-r2)"/>
                     <circle cx="112" cy="42" r="14" fill="#FEEFC3"/>
                     <path d="M0 82 L30 56 L60 72 L92 50 L130 66 L160 56 L160 120 L0 120 Z" fill="#202124"/>
                     <rect x="0" y="96" width="160" height="24" fill="#185ABC"/>
                   </g>
-                  <rect width="160" height="120" rx="6" filter="url(#cmp-noise)" opacity="0.85"/>
+                  <rect width="160" height="120" rx="6" filter="url(#cmp-noise-r2)" opacity="0.85"/>
                 </svg>
                 <span class="teaser-input-label grid-row2-label">noisy latent</span>
                 <span class="teaser-arrow grid-row2-arrow-in">→</span>
