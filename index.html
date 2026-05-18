@@ -3200,7 +3200,7 @@
                         <div xmlns="http://www.w3.org/1999/xhtml" style="text-align: center; font-family: 'Google Sans', sans-serif; font-size: 10px; font-weight: 700; color: #065f46; line-height: 16px;">$V_t$</div>
                       </foreignObject>
                       <foreignObject x="120" y="428" width="280" height="16">
-                        <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Google Sans', sans-serif; font-size: 9.5px; color: #065f46; font-style: italic; line-height: 16px;">no decoder &middot; no reward chain</div>
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Google Sans', sans-serif; font-size: 9.5px; color: #065f46; font-style: italic; line-height: 16px;">no extra denoiser call &middot; no VAE</div>
                       </foreignObject>
 
                       <!-- Tagline -->
@@ -3229,7 +3229,7 @@
                   </h4>
 
                   <div class="reach-fig-wrap">
-                    <svg viewBox="0 0 440 330" xmlns="http://www.w3.org/2000/svg">
+                    <svg viewBox="0 0 440 384" xmlns="http://www.w3.org/2000/svg">
                       <!-- ============================================================
                            STANDARD panel — full T-step rollout, terminal reward at z_0
                            ============================================================ -->
@@ -3329,28 +3329,44 @@
                       </foreignObject>
 
                       <!-- ============================================================
-                           MECHANISM note
+                           COVERAGE-COMPARISON STRIP — the supervision punchline
                            ============================================================ -->
-                      <foreignObject x="10" y="286" width="420" height="44">
-                        <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Google Sans', sans-serif; font-size: 10px; color: #065f46; font-style: italic; text-align: center; line-height: 14px;">
-                          <strong style="color: #065f46; font-style: normal;">Mechanism:</strong> instead of rolling out to $\mathbf z_0$ and applying the terminal reward $r$, early-stop at $\mathbf z_\tau$ and use $V_t(\mathbf z_\tau) \approx \mathbb{E}[r(\mathbf z_0)\mid\mathbf z_\tau]$ as the terminal. Same target, only $\tau/T$ the rollout cost, supervision available at every $\tau \in \{1,\ldots,T\}$.
+                      <foreignObject x="10" y="288" width="420" height="14">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Google Sans', sans-serif; font-size: 9px; font-weight: 700; color: #6b7280; letter-spacing: 0.10em; text-align: center; line-height: 14px;">
+                          WHERE THE LEARNING SIGNAL LIVES
+                        </div>
+                      </foreignObject>
+
+                      <!-- Standard row: mostly dark bar, bright spot at z_0 end -->
+                      <text x="64" y="316" text-anchor="end" font-family="Google Sans, sans-serif" font-size="9.5" font-weight="700" fill="#991b1b">STANDARD</text>
+                      <rect x="70" y="306" width="320" height="14" rx="3" fill="#374151"/>
+                      <rect x="370" y="306" width="20" height="14" rx="3" fill="#fbbf24"/>
+                      <foreignObject x="394" y="306" width="44" height="14">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Google Sans', sans-serif; font-size: 8.5px; color: #6b7280; font-style: italic; line-height: 14px;">only at $\mathbf{z}_0$</div>
+                      </foreignObject>
+
+                      <!-- StitchVM row: bright/green throughout -->
+                      <text x="64" y="338" text-anchor="end" font-family="Google Sans, sans-serif" font-size="9.5" font-weight="700" fill="#065f46">STITCHVM</text>
+                      <rect x="70" y="328" width="320" height="14" rx="3" fill="#10b981"/>
+                      <foreignObject x="142" y="328" width="176" height="14">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Google Sans', sans-serif; font-size: 9px; font-weight: 700; color: #ffffff; font-style: italic; text-align: center; line-height: 14px;">signal at every $\tau$</div>
+                      </foreignObject>
+                      <foreignObject x="394" y="328" width="44" height="14">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Google Sans', sans-serif; font-size: 8.5px; color: #065f46; font-style: italic; line-height: 14px;">incl. high σ</div>
+                      </foreignObject>
+
+                      <!-- Axis labels -->
+                      <text x="72" y="356" font-family="Google Sans, sans-serif" font-size="8.5" fill="#6b7280" font-style="italic">high σ (noisy)</text>
+                      <text x="388" y="356" text-anchor="end" font-family="Google Sans, sans-serif" font-size="8.5" fill="#6b7280" font-style="italic">σ → 0 (clean)</text>
+
+                      <!-- Tagline -->
+                      <foreignObject x="10" y="364" width="420" height="14">
+                        <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Google Sans', sans-serif; font-size: 10px; font-weight: 700; color: #065f46; font-style: italic; text-align: center; line-height: 14px;">
+                          $V_t$ lights up the whole trajectory &mdash; high-noise steps that were dark now learn.
                         </div>
                       </foreignObject>
                     </svg>
                   </div>
-                  <p class="reach-item-caption">
-                    All three methods finetune the denoiser using a <em>terminal</em> reward
-                    on the clean image $\mathbf z_0$, so every training iteration pays for a
-                    full $T$-step denoising rollout and the gradient backprops through all $T$
-                    denoiser calls. Worse, supervision lives only at $\mathbf z_0$
-                    &mdash; intermediate noisy latents get no signal. StitchVM plugs in a
-                    learned $V_t$ that approximates $\mathbb{E}[r(\mathbf z_0)\mid\mathbf z_t]$
-                    on noisy latents, so we can stop the rollout at an intermediate
-                    $\mathbf z_\tau$ and substitute $V_t(\mathbf z_\tau)$ for the terminal
-                    reward. The result: <em>τ/T the rollout cost</em>, and a learning signal
-                    available at every $\tau$ &mdash; including the high-noise steps that
-                    were previously dark.
-                  </p>
                 </div>
               </div>
             </div>
