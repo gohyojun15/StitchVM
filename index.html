@@ -2310,24 +2310,13 @@
               <!-- Body card: why not just learn V_t directly? -->
               <div class="concept-card" style="margin: 1rem 0 1.25rem 0;">
                 <div class="content has-text-justified" style="margin-bottom: 0;">
-                  <p>
-                    <strong>Why not just learn $V_t$ directly?</strong> It would be the
-                    cleanest fix &mdash; no bias, no variance, no extra evaluations
-                    &mdash; and would drop into every alignment method above. The
-                    community has sidelined this option not because it isn't desirable,
-                    but because <em>building such a model</em> has been hard.
-                  </p>
-                  <p>
-                    Matching the strength of a foundation-scale pixel reward model
-                    (CLIP, HPSv2, Aesthetic Predictor) on noisy latents requires roughly
-                    <em>their</em> training scale, and the result would have to be
-                    re-trained for every new diffusion backbone or reward. Smaller-scale
-                    or feature-reuse approaches trade away exactly the capability that
-                    made the pixel reward model worth using in the first place.
-                  </p>
                   <p style="margin-bottom: 0;">
-                    So existing methods approximate $V_t$. Two workarounds dominate
-                    &mdash; each with its own price, shown below:
+                    Learning $V_t$ directly would be the cleanest fix &mdash; no bias,
+                    no variance, no extra evaluations. But matching a foundation-scale
+                    pixel reward model (CLIP, HPSv2, Aesthetic Predictor) on noisy
+                    latents has meant training at <em>their</em> scale, redone for
+                    every new backbone or reward. So practitioners approximate $V_t$
+                    instead. Two workarounds dominate &mdash; each with its own price:
                   </p>
                 </div>
               </div>
@@ -2351,14 +2340,10 @@
                     <!-- left accent bar -->
                     <rect x="0" y="0" width="6" height="248" rx="2" fill="#dc2626"/>
 
-                    <!-- name + subtitle on same row (subtitle right-aligned) -->
+                    <!-- name -->
                     <text x="24" y="44" font-family="Google Sans, sans-serif"
                           font-size="26" font-weight="700" fill="#7c2d12">
                       Tweedie approximation
-                    </text>
-                    <text x="856" y="44" text-anchor="end" font-family="Google Sans, sans-serif"
-                          font-size="16" font-weight="500" fill="#7c2d12" font-style="italic" opacity="0.75">
-                      used in DPS &middot; FreeDoM &middot; MPGD &middot; FK steering &middot; &hellip;
                     </text>
 
                     <!-- Mechanism note: how Tweedie actually approximates V_t -->
@@ -2439,7 +2424,7 @@
                     </text>
                     <text x="856" y="296" text-anchor="end" font-family="Google Sans, sans-serif"
                           font-size="16" font-weight="500" fill="#7c2d12" font-style="italic" opacity="0.75">
-                      used in DDS &middot; sequential Monte Carlo &middot; RL post-training &middot; &hellip;
+                      used in most RL post-training methods
                     </text>
 
                     <!-- Mechanism note: how MC estimates V_t -->
@@ -2524,7 +2509,7 @@
                     <rect x="12" y="478" width="856" height="42" rx="8" fill="#dc2626"/>
                     <text x="32" y="508" font-family="Google Sans, sans-serif" font-size="18" font-weight="900" fill="#ffffff" letter-spacing="0.16em">⚠ ISSUE</text>
                     <text x="500" y="508" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="21" font-weight="700" fill="#ffffff">
-                      high variance &mdash; large <tspan font-family="Castoro, Times, serif" font-style="italic" font-weight="700">N</tspan> is computationally untenable
+                      high variance at small <tspan font-family="Castoro, Times, serif" font-style="italic" font-weight="700">N</tspan> &mdash; full rollouts make large <tspan font-family="Castoro, Times, serif" font-style="italic" font-weight="700">N</tspan> expensive
                     </text>
 
                     <!-- ====================================================
@@ -2600,10 +2585,9 @@
                   </svg>
                 </div>
                 <p class="concept-caption act2-punchline">
-                  The community has long settled for the red rows above &mdash;
-                  not because they are good, but because building a noisy-latent $V_t$
-                  at pixel-reward quality has meant training from scratch at foundation scale,
-                  re-done for every new backbone or reward.
+                  Practitioners settle for the red rows above because matching
+                  pixel-reward quality on noisy latents has meant retraining at
+                  foundation scale.
                   <strong class="act2-punchline-hit">StitchVM avoids that: it <em>transfers</em>, instead of retraining.</strong>
                 </p>
               </div>
