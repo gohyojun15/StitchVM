@@ -250,12 +250,12 @@
         color: #0f172a;
         font-weight: 700;
         text-decoration: none;
-        background: linear-gradient(180deg, transparent 0%, transparent 68%, #fde047 68%, #fde047 95%, transparent 95%);
+        background: linear-gradient(180deg, transparent 0%, transparent 78%, #fbbc04 78%, #fbbc04 95%, transparent 95%);
         padding: 0 0.08em 0.04em 0.08em;
         transition: background 0.18s ease;
       }
       .publication-authors.responsive .author-block a:hover {
-        background: linear-gradient(180deg, transparent 0%, transparent 0%, #fde047 0%, #fde047 100%, transparent 100%);
+        background: linear-gradient(180deg, transparent 0%, transparent 0%, #fbbc04 0%, #fbbc04 100%, transparent 100%);
       }
       .publication-authors.responsive sup {
         color: #6b7280;
@@ -1843,9 +1843,9 @@
         <div class="container is-max-desktop">
           <div class="columns is-centered">
             <div class="column has-text-centered">
-              <!-- Hero title: colored method prefix + descriptive title -->
+              <!-- Hero title: matches paper title exactly (no "StitchVM:" prefix) -->
               <h1 class="hero-titlerow">
-                <span class="title-method">StitchVM</span>: Stitched Value Model for Diffusion Alignment
+                Stitched Value Model for Diffusion Alignment
               </h1>
 
               <!-- Institutional logo separator strip -->
@@ -2056,7 +2056,7 @@
                 </svg>
                 <span class="teaser-input-label grid-row2-label">noisy latent</span>
                 <span class="teaser-arrow grid-row2-arrow-in">→</span>
-                <span class="teaser-rm-pill grid-row2-pill">Reward model</span>
+                <span class="teaser-rm-pill grid-row2-pill">Value model</span>
                 <span class="teaser-arrow grid-row2-arrow-out">→</span>
                 <span class="teaser-output grid-row2-output">reward</span>
               </div>
@@ -2381,12 +2381,20 @@
                     <rect x="120" y="88" width="128" height="44" rx="8" fill="#ffffff" stroke="#7c3aed" stroke-width="1.8"/>
                     <text x="184" y="115" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="15" font-weight="600" fill="#5b21b6">denoiser</text>
 
+                    <!-- intermediate latent ẑ_0 between denoiser and VAE -->
+                    <foreignObject x="244" y="93" width="44" height="14">
+                      <div xmlns="http://www.w3.org/1999/xhtml" style="text-align: center; font-family: 'Google Sans', sans-serif; font-size: 11px; color: #5b21b6; font-style: italic; line-height: 14px;">$\hat{\mathbf z}_0$</div>
+                    </foreignObject>
                     <line x1="252" y1="110" x2="280" y2="110" stroke="#1f2937" stroke-width="2"/>
                     <polygon points="280,110 272,105 272,115" fill="#1f2937"/>
 
                     <rect x="284" y="88" width="92" height="44" rx="8" fill="#ffffff" stroke="#7c3aed" stroke-width="1.8"/>
                     <text x="330" y="115" text-anchor="middle" font-family="Google Sans, sans-serif" font-size="15" font-weight="600" fill="#5b21b6">VAE</text>
 
+                    <!-- intermediate pixel image x̂_0 between VAE and reward model -->
+                    <foreignObject x="372" y="93" width="44" height="14">
+                      <div xmlns="http://www.w3.org/1999/xhtml" style="text-align: center; font-family: 'Google Sans', sans-serif; font-size: 11px; color: #5b21b6; font-style: italic; line-height: 14px;">$\hat{\mathbf x}_0$</div>
+                    </foreignObject>
                     <line x1="380" y1="110" x2="408" y2="110" stroke="#1f2937" stroke-width="2"/>
                     <polygon points="408,110 400,105 400,115" fill="#1f2937"/>
 
